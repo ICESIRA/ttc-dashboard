@@ -53,12 +53,14 @@ export function computeSkuData(rows) {
   return SKUS.map((sku) => {
     const rs = rows.filter((r) => r.sku === sku);
     const rev = sum(rs, "revenue");
+    const quoted = sum(rs, "quotedRevenue");
     const ord = sum(rs, "orders");
     const cogs = sum(rs, "cogs");
     const grossP = rev - cogs;
     const marginPct = rev > 0 ? ((grossP / rev) * 100).toFixed(1) : 0;
-    return { sku, rev, ord, cogs, grossP, marginPct };
-  }).sort((a, b) => b.grossP - a.grossP);
+    const closeRate = quoted > 0 ? (rev / quoted) * 100 : 0;
+    return { sku, rev, quoted, ord, cogs, grossP, marginPct, closeRate };
+  }).sort((a, b) => b.rev - a.rev);
 }
 
 // ─── เทรน รายเดือน vs รายวัน ────────────────────────────────

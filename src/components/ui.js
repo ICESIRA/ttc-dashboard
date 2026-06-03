@@ -23,5 +23,5 @@ export const cardStyle = {
   padding: "16px 20px",
 };
 
-export const cardTitle = { fontSize: 14, color: "var(--text-dim)", marginBottom: 4 };
-export const cardSubtitle = { fontSize: 12, color: "var(--text-faint)", marginBottom: 12 };
+export const cardTitle = { fontSize: 16, fontWeight: 600, color: "var(--text-dim)", marginBottom: 4 };
+export const cardSubtitle = { fontSize: 13, color: "var(--text-faint)", marginBottom: 12 };

@@ -26,8 +26,19 @@ export const MONTHS = [
   "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค.",
 ];
 
-export const YEARS = [2024, 2025, 2026];
-export const CURRENT_YEAR = 2026;
+// ปีจะถูกดึงจากข้อมูลจริง (ดู getYearsFromRows) — ไม่ fix ตายตัว
+export const CURRENT_YEAR = new Date().getFullYear() + 543 > 2500
+  ? new Date().getFullYear() // ใช้ ค.ศ. (ข้อมูลในชีตเก็บเป็น ค.ศ.)
+  : new Date().getFullYear();
+
+// คืนรายการปีที่มีจริงในข้อมูล (เรียงน้อย→มาก) — ใช้กับ filter ปี (ข้อ 4)
+export function getYearsFromRows(rows) {
+  const set = new Set(rows.map((r) => r.year).filter(Boolean));
+  return [...set].sort((a, b) => a - b);
+}
+
+// แปลงชื่อเดือนย่อ → index 0-11
+export const monthIndex = (m) => MONTHS.indexOf(m);
 
 export const DAYS_IN_MONTH = {
   "ม.ค.": 31, "ก.พ.": 28, "มี.ค.": 31, "เม.ย.": 30,
