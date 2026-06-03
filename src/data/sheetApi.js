@@ -47,23 +47,24 @@ const parseChannel = (raw) => {
   return "อื่นๆ";
 };
 
-// ── tab "กล่อง" (Apps Script ส่ง key สั้น: type/quoted/actual/customer/channel/day/month/year) ──
+// ── tab "กล่อง" (อ่านด้วยชื่อ header จริง) ──
+// คอลัมน์ "กลุ่มสินค้า" = STD/Custom · "ยอดขายเสนอ"/"ยอดขายจริง" = ยอดเงิน
 function normalizeBox(row, idx) {
-  const seen = row.channel ?? "";
-  const type = String(row.type ?? "").trim(); // "STD" | "Custom"
-  const actual = toNum(row.actual);
-  const quoted = toNum(row.quoted);
-  const year = toNum(row.year);
+  const seen = row["เห็นจากช่องทาง"] ?? "";
+  const group = String(row["กลุ่มสินค้า"] ?? "").trim(); // "STD" | "Custom"
+  const actual = toNum(row["ยอดขายจริง"]);
+  const quoted = toNum(row["ยอดขายเสนอ"]);
+  const year = toNum(row["ปี"]);
   const isClosed = actual > 0;
 
   return {
     id: `box-${idx}`,
     year,
-    month: monthFromNumber(toNum(row.month)),
-    day: toNum(row.day),
-    sku: type.toLowerCase() === "custom" ? "กล่อง Custom" : "กล่อง STD",
+    month: monthFromNumber(toNum(row["เดือน"])),
+    day: toNum(row["วัน"]),
+    sku: group.toLowerCase() === "custom" ? "กล่อง Custom" : "กล่อง STD",
     channel: parseChannel(seen),
-    customerName: String(row.customer ?? "").trim() || "ไม่ระบุ",
+    customerName: String(row["ชื่อลูกค้า"] ?? "").trim() || "ไม่ระบุ",
     customerType: /ลูกค้าเก่า/.test(String(seen)) ? "เก่า" : "ใหม่",
     quotedRevenue: quoted,
     revenue: isClosed ? actual : 0,
@@ -72,6 +73,7 @@ function normalizeBox(row, idx) {
     customers: isClosed ? 1 : 0,
     cogs: 0,
     adSpend: 0,
+    _group: group, // ใช้กรองแถวสรุป (ถ้าไม่ใช่ STD/Custom = แถวขยะ)
   };
 }
 
@@ -115,8 +117,10 @@ export async function fetchRows() {
   const box = (data.box || []).map(normalizeBox);
   const stk = (data.stk || []).map(normalizeStk);
 
-  // เก็บเฉพาะแถวที่มีเดือน + ปีอยู่ในช่วงที่ยอมรับ (กันแถวขยะ/สรุป/ปีเพี้ยน)
-  return [...box, ...stk].filter(
-    (r) => r.month && r.year >= MIN_YEAR && r.year <= MAX_YEAR
-  );
+  // เก็บเฉพาะแถวที่มีเดือน + ปีในช่วงที่ยอมรับ
+  // box: ต้องมี กลุ่มสินค้า = STD/Custom (กันแถวสรุปยอดที่ไม่มีค่านี้)
+  return [...box, ...stk]
+    .filter((r) => r.month && r.year >= MIN_YEAR && r.year <= MAX_YEAR)
+    .filter((r) => r._group === undefined || r._group === "STD" || r._group === "Custom")
+    .map(({ _group, ...rest }) => rest); // ตัด field ช่วยออก
 }
