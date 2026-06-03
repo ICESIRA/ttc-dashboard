@@ -47,23 +47,23 @@ const parseChannel = (raw) => {
   return "อื่นๆ";
 };
 
-// ── tab "กล่อง" ──
+// ── tab "กล่อง" (Apps Script ส่ง key สั้น: type/quoted/actual/customer/channel/day/month/year) ──
 function normalizeBox(row, idx) {
-  const seen = row["เห็นจากช่องทาง"] ?? "";
-  const boxType = String(row["ประเภทกล่อง"] ?? "").trim();
-  const actual = toNum(row["ยอดขายจริง"]);
-  const quoted = toNum(row["ยอดขายเสนอ"]);
-  const year = toNum(row["ปี"]);
+  const seen = row.channel ?? "";
+  const type = String(row.type ?? "").trim(); // "STD" | "Custom"
+  const actual = toNum(row.actual);
+  const quoted = toNum(row.quoted);
+  const year = toNum(row.year);
   const isClosed = actual > 0;
 
   return {
     id: `box-${idx}`,
     year,
-    month: monthFromNumber(toNum(row["เดือน"])),
-    day: toNum(row["วัน"]),
-    sku: boxType.toLowerCase() === "custom" ? "กล่อง Custom" : "กล่อง STD",
+    month: monthFromNumber(toNum(row.month)),
+    day: toNum(row.day),
+    sku: type.toLowerCase() === "custom" ? "กล่อง Custom" : "กล่อง STD",
     channel: parseChannel(seen),
-    customerName: String(row["ชื่อลูกค้า"] ?? "").trim() || "ไม่ระบุ",
+    customerName: String(row.customer ?? "").trim() || "ไม่ระบุ",
     customerType: /ลูกค้าเก่า/.test(String(seen)) ? "เก่า" : "ใหม่",
     quotedRevenue: quoted,
     revenue: isClosed ? actual : 0,
