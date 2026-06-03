@@ -9,7 +9,7 @@ import {
   computeKPIs, computeSkuData, computeChannelData,
   computeTopCustomers, computeCustomerMix, computeTopChannels,
 } from "../lib/analytics.js";
-import { buildTrend, filterByMode, getMode } from "../lib/compare.js";
+import { buildTrend, filterByMode, getMode, computeDelta } from "../lib/compare.js";
 import { fmtB, fmtNum, fmtDec } from "../lib/format.js";
 
 import Header from "./Header.jsx";
@@ -32,9 +32,10 @@ export default function Dashboard({ rows, theme, onToggleTheme, error, lastUpdat
   const [visibleChannels, setVisibleChannels] = useState(() => computeTopChannels(rows));
 
   // ─── compare-mode state ───
-  const [mode, setMode] = useState("m3");
+  const [mode, setMode] = useState("year");
   const [selMonths, setSelMonths] = useState([]);
   const [selYears, setSelYears] = useState([]);
+  const [startMonth, setStartMonth] = useState(null);
   const [activeYear, setActiveYear] = useState(null);
   const [didInit, setDidInit] = useState(false);
 
@@ -44,12 +45,12 @@ export default function Dashboard({ rows, theme, onToggleTheme, error, lastUpdat
   useEffect(() => {
     if (didInit || rows.length === 0) return;
     const ys = getYearsFromRows(rows);
-    const latestYear = ys[ys.length - 1];
-    const monthsInYear = MONTHS.filter((mm) =>
-      rows.some((r) => r.year === latestYear && r.month === mm)
-    );
+    const latestYear = ys[ys.length - 1]; // ปีล่าสุดที่มีข้อมูล (= 2026)
+    // ค่าเริ่มต้น: โหมดเทียบรายปี เลือกปีล่าสุดไว้
+    setSelYears([latestYear]);
     setActiveYear(latestYear);
-    setSelMonths(monthsInYear.slice(-3)); // 3 เดือนล่าสุด
+    const monthsInYear = MONTHS.filter((mm) => rows.some((r) => r.year === latestYear && r.month === mm));
+    setStartMonth(monthsInYear[monthsInYear.length - 1] || null); // เผื่อสลับโหมด lookback
     setDidInit(true);
   }, [rows, didInit]);
 
@@ -58,8 +59,8 @@ export default function Dashboard({ rows, theme, onToggleTheme, error, lastUpdat
 
   const changeMode = (newMode) => {
     setMode(newMode);
-    setSelMonths([]);
-    setSelYears([]);
+    // ไม่ล้าง selYears/startMonth เพื่อคงบริบทเดิมเท่าที่ทำได้
+    if (getMode(newMode).pick === "month") setSelMonths([]);
   };
   const toggleMonth = (mm) => {
     setSelMonths((prev) => {
@@ -90,19 +91,24 @@ export default function Dashboard({ rows, theme, onToggleTheme, error, lastUpdat
 
   // rows หลัง filter เวลา (ตามโหมด) — ใช้กับ KPI + ตาราง
   const filtered = useMemo(
-    () => filterByMode(filteredBase, mode, selMonths, selYears, activeYear),
-    [filteredBase, mode, selMonths, selYears, activeYear]
+    () => filterByMode(filteredBase, mode, selMonths, selYears, activeYear, startMonth),
+    [filteredBase, mode, selMonths, selYears, activeYear, startMonth]
   );
 
   const kpi = useMemo(() => computeKPIs(filtered), [filtered]);
   const trend = useMemo(
-    () => buildTrend(filteredBase, mode, selMonths, selYears, activeYear),
-    [filteredBase, mode, selMonths, selYears, activeYear]
+    () => buildTrend(filteredBase, mode, selMonths, selYears, activeYear, startMonth),
+    [filteredBase, mode, selMonths, selYears, activeYear, startMonth]
   );
   const skuData = useMemo(() => computeSkuData(filtered), [filtered]);
   const channelData = useMemo(() => computeChannelData(filtered), [filtered]);
   const topCustomers = useMemo(() => computeTopCustomers(filtered), [filtered]);
   const customerMix = useMemo(() => computeCustomerMix(filtered), [filtered]);
+  const delta = useMemo(
+    () => computeDelta(filteredBase, mode, selMonths, selYears, activeYear, startMonth),
+    [filteredBase, mode, selMonths, selYears, activeYear, startMonth]
+  );
+  const d = (key) => (delta ? { pct: delta[key], label: delta.label } : null);
 
   const handleHeatmapCell = (sku, ch, isActiveCell) => {
     if (isActiveCell) { setActiveSku(null); setActiveChannel(null); }
@@ -121,24 +127,24 @@ export default function Dashboard({ rows, theme, onToggleTheme, error, lastUpdat
       />
 
       <CompareControl
-        mode={mode} selMonths={selMonths} selYears={selYears} activeYear={activeYear}
+        mode={mode} selMonths={selMonths} selYears={selYears} startMonth={startMonth} activeYear={activeYear}
         availableYears={availableYears}
         onChangeMode={changeMode} onToggleMonth={toggleMonth} onToggleYear={toggleYear}
-        onChangeActiveYear={setActiveYear}
+        onSetStartMonth={setStartMonth} onChangeActiveYear={setActiveYear}
       />
 
       {/* KPI row 1 */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 12 }}>
-        <KPICard label="ยอดขายเสนอ" value={fmtB(kpi.quoted)} sub="Pipeline / Quote ทั้งหมด" color="var(--text-muted)" />
-        <KPICard label="ยอดขาย (ปิดได้)" value={fmtB(kpi.revenue)} sub={`อัตราปิด ${fmtDec(closeOfQuote, 1)}% ของยอดเสนอ`} color={ACCENT} />
+        <KPICard label="ยอดขายเสนอ" value={fmtB(kpi.quoted)} sub="Pipeline / Quote ทั้งหมด" color="var(--text-muted)" delta={d("quoted")} />
+        <KPICard label="ยอดขาย (ปิดได้)" value={fmtB(kpi.revenue)} sub={`อัตราปิด ${fmtDec(closeOfQuote, 1)}% ของยอดเสนอ`} color={ACCENT} delta={d("revenue")} />
         <KPICard label="AOV" value={fmtB(kpi.aov)} sub="ค่าเฉลี่ยต่อออเดอร์" color="#10b981" />
         <KPICard label="เฉลี่ย 1 คนซื้อ" value={`${fmtDec(kpi.avgPurchase, 2)} ครั้ง`} sub={`${fmtNum(kpi.customers)} ลูกค้า · ${fmtNum(kpi.orders)} ออเดอร์`} color="#a78bfa" />
       </div>
 
       {/* KPI row 2 */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 20 }}>
-        <KPICard label="Count QA" value={fmtNum(kpi.qaCount)} sub="Lead / Inquiry ทั้งหมด" color="var(--text-dim)" />
-        <KPICard label="Total Orders" value={fmtNum(kpi.orders)} sub="ออเดอร์ที่ปิดได้" color="#3b82f6" />
+        <KPICard label="Count QA" value={fmtNum(kpi.qaCount)} sub="Lead / Inquiry ทั้งหมด" color="var(--text-dim)" delta={d("qaCount")} />
+        <KPICard label="Total Orders" value={fmtNum(kpi.orders)} sub="ออเดอร์ที่ปิดได้" color="#3b82f6" delta={d("orders")} />
         <KPICard label="% Close Rate (จาก QA)" value={`${fmtDec(kpi.closeRate, 1)}%`} sub={`${fmtNum(kpi.orders)} ÷ ${fmtNum(kpi.qaCount)} QA`} color={kpi.closeRate > 25 ? "#10b981" : kpi.closeRate > 15 ? "#f59e0b" : "#f87171"} />
         <KPICard label="ส่วนต่าง (เสนอ−ปิด)" value={fmtB(kpi.quoted - kpi.revenue)} sub="ยอดที่เสนอแต่ยังไม่ปิด" color="#f59e0b" />
       </div>

@@ -28,10 +28,10 @@ export default function KPICard({ label, value, sub, color, delta }) {
         {value}
       </div>
       {sub && <div style={{ fontSize: 13, color: "var(--text-dim)" }}>{sub}</div>}
-      {delta && (
+      {delta && delta.pct !== null && delta.pct !== undefined && (
         <div
           style={{
-            fontSize: 11,
+            fontSize: 13,
             fontWeight: 600,
             color: delta.pct >= 0 ? "#10b981" : "#f87171",
           }}
