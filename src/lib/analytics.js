@@ -17,14 +17,16 @@ export function computeKPIs(rows) {
   const qaCount = sum(rows, "qaCount");
   const customers = sum(rows, "customers");
   const cogs = sum(rows, "cogs");
+  const adSpend = sum(rows, "adSpend");
   const grossProfit = revenue - cogs;
 
   return {
-    quoted, revenue, orders, qaCount, customers, cogs, grossProfit,
+    quoted, revenue, orders, qaCount, customers, cogs, grossProfit, adSpend,
     aov: orders > 0 ? revenue / orders : 0,
     avgPurchase: customers > 0 ? orders / customers : 0,
     closeRate: qaCount > 0 ? (orders / qaCount) * 100 : 0,
     margin: revenue > 0 ? (grossProfit / revenue) * 100 : 0,
+    roas: adSpend > 0 ? revenue / adSpend : 0,
   };
 }
 

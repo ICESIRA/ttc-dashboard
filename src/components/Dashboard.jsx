@@ -146,7 +146,7 @@ export default function Dashboard({ rows, theme, onToggleTheme, error, lastUpdat
         <KPICard label="Count QA" value={fmtParts(kpi.qaCount, "")} sub="Lead / Inquiry ทั้งหมด" color="var(--text-dim)" delta={d("qaCount")} />
         <KPICard label="Total Orders" value={fmtParts(kpi.orders, "")} sub="ออเดอร์ที่ปิดได้" color="#3b82f6" delta={d("orders")} />
         <KPICard label="% Close Rate (จาก QA)" value={`${fmtDec(kpi.closeRate, 1)}%`} sub={`${fmtNum(kpi.orders)} ÷ ${fmtNum(kpi.qaCount)} QA`} color={kpi.closeRate > 25 ? "#10b981" : kpi.closeRate > 15 ? "#f59e0b" : "#f87171"} />
-        <KPICard label="ส่วนต่าง (เสนอ−ปิด)" value={fmtParts(kpi.quoted - kpi.revenue, "บาท")} sub="ยอดที่เสนอแต่ยังไม่ปิด" color="#f59e0b" />
+        <KPICard label="ค่าโฆษณา (Ad Spend)" value={fmtParts(kpi.adSpend, "บาท")} sub={kpi.adSpend > 0 ? `ROAS ${fmtDec(kpi.roas, 2)}x · ยอดขาย ÷ ค่าแอด` : "ยังไม่มีข้อมูลค่าแอดในช่วงนี้"} color="#fb923c" delta={d("adSpend")} />
       </div>
 
       {/* ยอดเสนอ vs ยอดขาย (ข้อ 7) */}

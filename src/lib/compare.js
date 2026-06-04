@@ -53,12 +53,15 @@ const calcPoint = (rows, label, extra = {}) => {
   const revenue = sum(rows, "revenue");
   const orders = sum(rows, "orders");
   const qa = sum(rows, "qaCount");
+  const adSpend = sum(rows, "adSpend");
   return {
     label,
     quoted,
     revenue,
     orders,
     qaCount: qa,
+    adSpend,
+    roas: adSpend > 0 ? revenue / adSpend : 0,
     gap: quoted - revenue, // ส่วนที่เสนอแต่ยังไม่ปิด
     closeRate: quoted > 0 ? (revenue / quoted) * 100 : 0,
     avgOrderValue: orders > 0 ? Math.round(revenue / orders) : 0,
@@ -135,6 +138,7 @@ export function computeDelta(rows, mode, selMonths, selYears, activeYear, startM
     revenue: sum(rs, "revenue"),
     orders: sum(rs, "orders"),
     qaCount: sum(rs, "qaCount"),
+    adSpend: sum(rs, "adSpend"),
   });
   const makeDelta = (curRs, prevRs, label) => {
     const c = agg(curRs), p = agg(prevRs);
@@ -144,6 +148,7 @@ export function computeDelta(rows, mode, selMonths, selYears, activeYear, startM
       revenue: pct(c.revenue, p.revenue),
       orders: pct(c.orders, p.orders),
       qaCount: pct(c.qaCount, p.qaCount),
+      adSpend: pct(c.adSpend, p.adSpend),
     };
   };
 

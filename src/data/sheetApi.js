@@ -117,10 +117,34 @@ export async function fetchRows() {
   const box = (data.box || []).map(normalizeBox);
   const stk = (data.stk || []).map(normalizeStk);
 
+  // ── ad spend รายวัน (account-level) ──
+  // map: "YYYY-M-D" → ยอดรวมของวันนั้น (เลข ค.ศ. + เดือนเลข + วัน)
+  const adByKey = {};
+  (data.adSpend || []).forEach(({ date, spend }) => {
+    const m = String(date).match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
+    if (!m) return;
+    const key = `${Number(m[1])}-${Number(m[2])}-${Number(m[3])}`;
+    adByKey[key] = (adByKey[key] || 0) + Number(spend || 0);
+  });
+  // monthIndex ของชื่อเดือนไทย → เลขเดือน (1-12) เพื่อ match กับ key
+  const monthNum = (thMonth) => MONTHS.indexOf(thMonth) + 1;
+
   // เก็บเฉพาะแถวที่มีเดือน + ปีในช่วงที่ยอมรับ
-  // box: ต้องมี กลุ่มสินค้า = STD/Custom (กันแถวสรุปยอดที่ไม่มีค่านี้)
-  return [...box, ...stk]
+  let rows = [...box, ...stk]
     .filter((r) => r.month && r.year >= MIN_YEAR && r.year <= MAX_YEAR)
     .filter((r) => r._group === undefined || r._group === "STD" || r._group === "Custom")
-    .map(({ _group, ...rest }) => rest); // ตัด field ช่วยออก
+    .map(({ _group, ...rest }) => rest);
+
+  // ใส่ ad spend ของแต่ละวันไว้ที่ "แถวแรก" ของวันนั้นเพียงแถวเดียว
+  // (เพื่อให้ผลรวม adSpend ต่อวัน/เดือน/ปี = ยอดจริง ไม่นับซ้ำ)
+  const seenDay = new Set();
+  rows.forEach((r) => {
+    const key = `${r.year}-${monthNum(r.month)}-${r.day}`;
+    if (adByKey[key] !== undefined && !seenDay.has(key)) {
+      r.adSpend = adByKey[key];
+      seenDay.add(key);
+    }
+  });
+
+  return rows;
 }
