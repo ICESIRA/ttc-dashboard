@@ -13,7 +13,7 @@ function Center({ children }) {
     <div style={{
       minHeight: "100vh", display: "flex", flexDirection: "column",
       alignItems: "center", justifyContent: "center", gap: 12,
-      fontFamily: "'DM Sans', sans-serif", color: "var(--text-primary)", background: "var(--bg-page)",
+      fontFamily: "'IBM Plex Sans Thai', sans-serif", color: "var(--text-primary)", background: "var(--bg-page)",
     }}>
       {children}
     </div>
@@ -22,7 +22,7 @@ function Center({ children }) {
 
 export default function App() {
   const [theme, setTheme] = useState("light");
-  const { rows, loading, error, lastUpdated, refresh } = useSheetData();
+  const { rows, adSpendDaily, loading, error, lastUpdated, refresh } = useSheetData();
   const toggleTheme = () => setTheme((t) => (t === "light" ? "dark" : "light"));
 
   // รอบแรก: กำลังโหลด
@@ -65,7 +65,7 @@ export default function App() {
     <>
       <ThemeStyle mode={theme} />
       <Dashboard
-        rows={rows} theme={theme} onToggleTheme={toggleTheme}
+        rows={rows} adSpendDaily={adSpendDaily} theme={theme} onToggleTheme={toggleTheme}
         error={error} lastUpdated={lastUpdated} onRefresh={refresh}
       />
     </>

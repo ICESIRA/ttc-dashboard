@@ -180,3 +180,42 @@ export function computeDelta(rows, mode, selMonths, selYears, activeYear, startM
     prevMonth ? `${curMonth} เทียบ ${prevMonth}` : curMonth
   );
 }
+
+// ─────────────────────────────────────────────────────────────
+// adSpendUtils — รวม ad spend (dataset แยก) ตามช่วงเวลา
+// adSpendDaily: [{ year, month(ไทย), day, spend }]
+// ─────────────────────────────────────────────────────────────
+
+// รวม ad spend ตาม filter เวลาเดียวกับ filterByMode
+export function adSpendForPeriod(adSpendDaily, mode, selMonths, selYears, activeYear, startMonth) {
+  if (!adSpendDaily || !adSpendDaily.length) return 0;
+  const m = getMode(mode);
+  if (m.pick === "year") {
+    if (!selYears.length) return adSpendDaily.reduce((a, d) => a + d.spend, 0);
+    return adSpendDaily.filter((d) => selYears.includes(d.year)).reduce((a, d) => a + d.spend, 0);
+  }
+  const months = resolveMonths(mode, selMonths, startMonth);
+  return adSpendDaily.filter((d) =>
+    (!activeYear || d.year === activeYear) &&
+    (months.length === 0 || months.includes(d.month))
+  ).reduce((a, d) => a + d.spend, 0);
+}
+
+// สร้าง map ad spend ต่อ "จุด" ใน trend (วัน/เดือน/ปี) เพื่อใส่ลงกราฟ
+export function adSpendByPoint(adSpendDaily, granularity, activeYear) {
+  const map = {};
+  (adSpendDaily || []).forEach((d) => {
+    let key;
+    if (granularity === "day") {
+      if (activeYear && d.year !== activeYear) return;
+      key = String(d.day);
+    } else if (granularity === "year") {
+      key = String(d.year);
+    } else {
+      if (activeYear && d.year !== activeYear) return;
+      key = d.month;
+    }
+    map[key] = (map[key] || 0) + d.spend;
+  });
+  return map;
+}

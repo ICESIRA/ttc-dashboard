@@ -9,7 +9,7 @@ import {
   computeKPIs, computeSkuData, computeChannelData,
   computeTopCustomers, computeCustomerMix, computeTopChannels,
 } from "../lib/analytics.js";
-import { buildTrend, filterByMode, getMode, computeDelta } from "../lib/compare.js";
+import { buildTrend, filterByMode, getMode, computeDelta, adSpendForPeriod, adSpendByPoint } from "../lib/compare.js";
 import { fmtB, fmtNum, fmtDec, fmtParts } from "../lib/format.js";
 
 import Header from "./Header.jsx";
@@ -23,7 +23,7 @@ import ChannelCards from "./tables/ChannelCards.jsx";
 import SkuTable from "./tables/SkuTable.jsx";
 import SkuChannelHeatmap from "./tables/SkuChannelHeatmap.jsx";
 
-export default function Dashboard({ rows, theme, onToggleTheme, error, lastUpdated, onRefresh }) {
+export default function Dashboard({ rows, adSpendDaily, theme, onToggleTheme, error, lastUpdated, onRefresh }) {
   // ─── filter state (SKU / channel / customer) ───
   const [activeSku, setActiveSku] = useState(null);
   const [activeChannel, setActiveChannel] = useState(null);
@@ -95,11 +95,25 @@ export default function Dashboard({ rows, theme, onToggleTheme, error, lastUpdat
     [filteredBase, mode, selMonths, selYears, activeYear, startMonth]
   );
 
-  const kpi = useMemo(() => computeKPIs(filtered), [filtered]);
-  const trend = useMemo(
-    () => buildTrend(filteredBase, mode, selMonths, selYears, activeYear, startMonth),
-    [filteredBase, mode, selMonths, selYears, activeYear, startMonth]
+  const periodAdSpend = useMemo(
+    () => adSpendForPeriod(adSpendDaily, mode, selMonths, selYears, activeYear, startMonth),
+    [adSpendDaily, mode, selMonths, selYears, activeYear, startMonth]
   );
+  const kpi = useMemo(() => {
+    const k = computeKPIs(filtered);
+    k.adSpend = periodAdSpend;
+    k.roas = periodAdSpend > 0 ? k.revenue / periodAdSpend : 0;
+    return k;
+  }, [filtered, periodAdSpend]);
+  const trend = useMemo(() => {
+    const t = buildTrend(filteredBase, mode, selMonths, selYears, activeYear, startMonth);
+    const adMap = adSpendByPoint(adSpendDaily, t.granularity, activeYear);
+    t.data = t.data.map((pt) => {
+      const ad = adMap[pt.label] || 0;
+      return { ...pt, adSpend: ad, roas: ad > 0 ? pt.revenue / ad : 0 };
+    });
+    return t;
+  }, [filteredBase, adSpendDaily, mode, selMonths, selYears, activeYear, startMonth]);
   const skuData = useMemo(() => computeSkuData(filtered), [filtered]);
   const channelData = useMemo(() => computeChannelData(filtered), [filtered]);
   const topCustomers = useMemo(() => computeTopCustomers(filtered), [filtered]);
@@ -146,7 +160,7 @@ export default function Dashboard({ rows, theme, onToggleTheme, error, lastUpdat
         <KPICard label="Count QA" value={fmtParts(kpi.qaCount, "")} sub="Lead / Inquiry ทั้งหมด" color="var(--text-dim)" delta={d("qaCount")} />
         <KPICard label="Total Orders" value={fmtParts(kpi.orders, "")} sub="ออเดอร์ที่ปิดได้" color="#3b82f6" delta={d("orders")} />
         <KPICard label="% Close Rate (จาก QA)" value={`${fmtDec(kpi.closeRate, 1)}%`} sub={`${fmtNum(kpi.orders)} ÷ ${fmtNum(kpi.qaCount)} QA`} color={kpi.closeRate > 25 ? "#10b981" : kpi.closeRate > 15 ? "#f59e0b" : "#f87171"} />
-        <KPICard label="ค่าโฆษณา (Ad Spend)" value={fmtParts(kpi.adSpend, "บาท")} sub={kpi.adSpend > 0 ? `ROAS ${fmtDec(kpi.roas, 2)}x · ยอดขาย ÷ ค่าแอด` : "ยังไม่มีข้อมูลค่าแอดในช่วงนี้"} color="#fb923c" delta={d("adSpend")} />
+        <KPICard label="ค่าโฆษณา (Ad Spend)" value={fmtParts(kpi.adSpend, "บาท")} sub={kpi.adSpend > 0 ? `ROAS ${fmtDec(kpi.roas, 2)}x · ยอดขาย ÷ ค่าแอด` : "ยังไม่มีข้อมูลค่าแอดในช่วงนี้"} color="#fb923c" />
       </div>
 
       {/* ยอดเสนอ vs ยอดขาย (ข้อ 7) */}

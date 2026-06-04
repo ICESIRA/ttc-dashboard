@@ -117,34 +117,26 @@ export async function fetchRows() {
   const box = (data.box || []).map(normalizeBox);
   const stk = (data.stk || []).map(normalizeStk);
 
-  // ── ad spend รายวัน (account-level) ──
-  // map: "YYYY-M-D" → ยอดรวมของวันนั้น (เลข ค.ศ. + เดือนเลข + วัน)
-  const adByKey = {};
-  (data.adSpend || []).forEach(({ date, spend }) => {
-    const m = String(date).match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
-    if (!m) return;
-    const key = `${Number(m[1])}-${Number(m[2])}-${Number(m[3])}`;
-    adByKey[key] = (adByKey[key] || 0) + Number(spend || 0);
-  });
-  // monthIndex ของชื่อเดือนไทย → เลขเดือน (1-12) เพื่อ match กับ key
-  const monthNum = (thMonth) => MONTHS.indexOf(thMonth) + 1;
+  // ── ad spend รายวัน (account-level) เป็น dataset แยก ──
+  // แต่ละ entry: { year, month(ไทย), day, spend }
+  const adSpendDaily = (data.adSpend || [])
+    .map(({ date, spend }) => {
+      const m = String(date).match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
+      if (!m) return null;
+      return {
+        year: Number(m[1]),
+        month: monthFromNumber(Number(m[2])),
+        day: Number(m[3]),
+        spend: Number(spend || 0),
+      };
+    })
+    .filter((x) => x && x.year >= MIN_YEAR && x.year <= MAX_YEAR);
 
   // เก็บเฉพาะแถวที่มีเดือน + ปีในช่วงที่ยอมรับ
-  let rows = [...box, ...stk]
+  const rows = [...box, ...stk]
     .filter((r) => r.month && r.year >= MIN_YEAR && r.year <= MAX_YEAR)
     .filter((r) => r._group === undefined || r._group === "STD" || r._group === "Custom")
     .map(({ _group, ...rest }) => rest);
 
-  // ใส่ ad spend ของแต่ละวันไว้ที่ "แถวแรก" ของวันนั้นเพียงแถวเดียว
-  // (เพื่อให้ผลรวม adSpend ต่อวัน/เดือน/ปี = ยอดจริง ไม่นับซ้ำ)
-  const seenDay = new Set();
-  rows.forEach((r) => {
-    const key = `${r.year}-${monthNum(r.month)}-${r.day}`;
-    if (adByKey[key] !== undefined && !seenDay.has(key)) {
-      r.adSpend = adByKey[key];
-      seenDay.add(key);
-    }
-  });
-
-  return rows;
+  return { rows, adSpendDaily };
 }

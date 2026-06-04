@@ -15,6 +15,7 @@ import { REFRESH_INTERVAL_MS } from "../config/constants.js";
 
 export function useSheetData() {
   const [rows, setRows] = useState([]);
+  const [adSpendDaily, setAdSpendDaily] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(null);
@@ -23,7 +24,8 @@ export function useSheetData() {
   const load = useCallback(async () => {
     try {
       const data = await fetchRows();
-      setRows(data);
+      setRows(data.rows || []);
+      setAdSpendDaily(data.adSpendDaily || []);
       setError(null);
       setLastUpdated(new Date());
     } catch (err) {
@@ -43,5 +45,5 @@ export function useSheetData() {
     return () => clearInterval(id);
   }, [load]);
 
-  return { rows, loading, error, lastUpdated, refresh: load };
+  return { rows, adSpendDaily, loading, error, lastUpdated, refresh: load };
 }
