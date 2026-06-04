@@ -8,12 +8,23 @@ import { MONTHS } from "../config/constants.js";
 // รวมค่าใน array ตาม key
 export const sum = (arr, key) => arr.reduce((a, r) => a + (r[key] || 0), 0);
 
-// ย่อตัวเลขเป็นไทย: 1.2 ล้าน / 58.9 ล้าน / 3.4 พัน / 567
-export const fmt = (n) => {
+// ── หน่วยย่อภาษาไทย: พัน / หมื่น / แสน / ล้าน ตามจริง ──
+// คืน { num, unit } : ตัวเลข + ชื่อหน่วย (สำหรับ render แยกขนาด)
+// ตั้งแต่ล้านขึ้นไปใช้ "ล้าน" ต่อเนื่อง (เช่น 58,000,000 → 58.0 ล้าน)
+const thaiScale = (n) => {
   const v = Number(n) || 0;
-  if (Math.abs(v) >= 1e6) return `${(v / 1e6).toFixed(2)} ล้าน`;
-  if (Math.abs(v) >= 1e3) return `${(v / 1e3).toFixed(1)} พัน`;
-  return String(Math.round(v));
+  const a = Math.abs(v);
+  if (a >= 1e6) return { num: (v / 1e6).toFixed(2), unit: "ล้าน" };
+  if (a >= 1e5) return { num: (v / 1e5).toFixed(2), unit: "แสน" };
+  if (a >= 1e4) return { num: (v / 1e4).toFixed(2), unit: "หมื่น" };
+  if (a >= 1e3) return { num: (v / 1e3).toFixed(1), unit: "พัน" };
+  return { num: String(Math.round(v)), unit: "" };
+};
+
+// ย่อตัวเลขเป็น string เดียว เช่น "5.80 หมื่น" / "58.95 ล้าน" / "567"
+export const fmt = (n) => {
+  const { num, unit } = thaiScale(n);
+  return unit ? `${num} ${unit}` : num;
 };
 
 // แยกเป็น { num, unit } เพื่อให้ render หน่วยด้วยฟอนต์เล็กลงได้
@@ -22,10 +33,8 @@ export const fmt = (n) => {
 //        fmtParts(3400,"ครั้ง")    → { num:"3.4",   unit:"พันครั้ง" }
 //        fmtParts(567,"บาท")       → { num:"567",   unit:"บาท" }
 export const fmtParts = (n, unitWord = "") => {
-  const v = Number(n) || 0;
-  if (Math.abs(v) >= 1e6) return { num: (v / 1e6).toFixed(2), unit: `ล้าน${unitWord}` };
-  if (Math.abs(v) >= 1e3) return { num: (v / 1e3).toFixed(1), unit: `พัน${unitWord}` };
-  return { num: String(Math.round(v)), unit: unitWord };
+  const { num, unit } = thaiScale(n);
+  return { num, unit: unit ? `${unit}${unitWord}` : unitWord };
 };
 
 // เดิมเติม ฿ — ตอนนี้ไม่เติมแล้ว (เก็บชื่อ fmtB ไว้ให้โค้ดเดิมเรียกได้)
