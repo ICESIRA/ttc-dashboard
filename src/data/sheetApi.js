@@ -119,16 +119,23 @@ export async function fetchRows() {
 
   // ── ad spend รายวัน (account-level) เป็น dataset แยก ──
   // แต่ละ entry: { year, month(ไทย), day, spend }
+  const MON_ABBR = { Jan:1,Feb:2,Mar:3,Apr:4,May:5,Jun:6,Jul:7,Aug:8,Sep:9,Oct:10,Nov:11,Dec:12 };
   const adSpendDaily = (data.adSpend || [])
     .map(({ date, spend }) => {
-      const m = String(date).match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
-      if (!m) return null;
-      return {
-        year: Number(m[1]),
-        month: monthFromNumber(Number(m[2])),
-        day: Number(m[3]),
-        spend: Number(spend || 0),
-      };
+      let y, mo, d;
+      const s = String(date);
+      const iso = s.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
+      const txt = s.match(/([A-Z][a-z]{2})\s+(\d{1,2})\s+(\d{4})/); // "Dec 06 2025"
+      if (iso) {
+        y = Number(iso[1]); mo = Number(iso[2]); d = Number(iso[3]);
+      } else if (txt && MON_ABBR[txt[1]]) {
+        mo = MON_ABBR[txt[1]]; d = Number(txt[2]); y = Number(txt[3]);
+      } else {
+        const dt = new Date(date);
+        if (isNaN(dt.getTime())) return null;
+        y = dt.getFullYear(); mo = dt.getMonth() + 1; d = dt.getDate();
+      }
+      return { year: y, month: monthFromNumber(mo), day: d, spend: Number(spend || 0) };
     })
     .filter((x) => x && x.year >= MIN_YEAR && x.year <= MAX_YEAR);
 
