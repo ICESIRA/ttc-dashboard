@@ -43,7 +43,7 @@ export default function OfferVsSalesPanel({ trend }) {
           <XAxis dataKey="label" tick={{ fill: "var(--text-dim)", fontSize: 13 }} axisLine={false} tickLine={false} />
           <YAxis tick={{ fill: "var(--text-faint)", fontSize: 12 }} axisLine={false} tickLine={false} tickFormatter={fmt} width={64} />
           <Tooltip {...tooltipProps}
-            formatter={(v, n) => [fmt(v), n === "quoted" ? "ยอดเสนอ" : n === "revenue" ? "ยอดขาย(ปิดได้)" : n]} />
+            formatter={(v, n) => [`${fmt(v)} บาท`, n === "quoted" ? "ยอดเสนอ" : n === "revenue" ? "ยอดขาย(ปิดได้)" : n]} />
           <Legend formatter={(v) => (v === "quoted" ? "ยอดเสนอ" : "ยอดขาย(ปิดได้)")} wrapperStyle={{ fontSize: 14 }} />
           <Line type="monotone" dataKey="quoted" stroke={C_QUOTED} strokeWidth={2.5} strokeDasharray="5 4" dot={{ r: 3, fill: C_QUOTED }} />
           <Line type="monotone" dataKey="revenue" stroke={C_SALES} strokeWidth={3} dot={{ r: 4, fill: C_SALES }} />
@@ -59,7 +59,7 @@ export default function OfferVsSalesPanel({ trend }) {
           <XAxis dataKey="label" tick={{ fill: "var(--text-dim)", fontSize: 13 }} axisLine={false} tickLine={false} />
           <YAxis tick={{ fill: "var(--text-faint)", fontSize: 12 }} axisLine={false} tickLine={false} tickFormatter={fmt} width={64} />
           <Tooltip {...tooltipProps}
-            formatter={(v, n) => [fmt(v), n === "quoted" ? "ยอดเสนอ" : "ยอดขาย(ปิดได้)"]} />
+            formatter={(v, n) => [`${fmt(v)} บาท`, n === "quoted" ? "ยอดเสนอ" : "ยอดขาย(ปิดได้)"]} />
           <Bar dataKey="quoted" fill={C_QUOTED} radius={[4, 4, 0, 0]} maxBarSize={48} />
           <Bar dataKey="revenue" fill={C_SALES} radius={[4, 4, 0, 0]} maxBarSize={48}>
             <LabelList dataKey="revenue" position="top" formatter={fmt}

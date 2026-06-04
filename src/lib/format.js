@@ -16,6 +16,18 @@ export const fmt = (n) => {
   return String(Math.round(v));
 };
 
+// แยกเป็น { num, unit } เพื่อให้ render หน่วยด้วยฟอนต์เล็กลงได้
+//   unitWord = คำต่อท้ายหน่วย เช่น "บาท" / "ครั้ง" (ใส่ "" ได้ถ้าไม่ต้องการ)
+//   เช่น fmtParts(58951614,"บาท") → { num:"58.95", unit:"ล้านบาท" }
+//        fmtParts(3400,"ครั้ง")    → { num:"3.4",   unit:"พันครั้ง" }
+//        fmtParts(567,"บาท")       → { num:"567",   unit:"บาท" }
+export const fmtParts = (n, unitWord = "") => {
+  const v = Number(n) || 0;
+  if (Math.abs(v) >= 1e6) return { num: (v / 1e6).toFixed(2), unit: `ล้าน${unitWord}` };
+  if (Math.abs(v) >= 1e3) return { num: (v / 1e3).toFixed(1), unit: `พัน${unitWord}` };
+  return { num: String(Math.round(v)), unit: unitWord };
+};
+
 // เดิมเติม ฿ — ตอนนี้ไม่เติมแล้ว (เก็บชื่อ fmtB ไว้ให้โค้ดเดิมเรียกได้)
 export const fmtB = (n) => fmt(n);
 

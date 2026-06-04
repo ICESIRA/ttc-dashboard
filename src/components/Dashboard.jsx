@@ -10,7 +10,7 @@ import {
   computeTopCustomers, computeCustomerMix, computeTopChannels,
 } from "../lib/analytics.js";
 import { buildTrend, filterByMode, getMode, computeDelta } from "../lib/compare.js";
-import { fmtB, fmtNum, fmtDec } from "../lib/format.js";
+import { fmtB, fmtNum, fmtDec, fmtParts } from "../lib/format.js";
 
 import Header from "./Header.jsx";
 import CompareControl from "./CompareControl.jsx";
@@ -135,18 +135,18 @@ export default function Dashboard({ rows, theme, onToggleTheme, error, lastUpdat
 
       {/* KPI row 1 */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 12 }}>
-        <KPICard label="ยอดขายเสนอ" value={fmtB(kpi.quoted)} sub="Pipeline / Quote ทั้งหมด" color="var(--text-muted)" delta={d("quoted")} />
-        <KPICard label="ยอดขาย (ปิดได้)" value={fmtB(kpi.revenue)} sub={`อัตราปิด ${fmtDec(closeOfQuote, 1)}% ของยอดเสนอ`} color={ACCENT} delta={d("revenue")} />
-        <KPICard label="AOV" value={fmtB(kpi.aov)} sub="ค่าเฉลี่ยต่อออเดอร์" color="#10b981" />
-        <KPICard label="เฉลี่ย 1 คนซื้อ" value={`${fmtDec(kpi.avgPurchase, 2)} ครั้ง`} sub={`${fmtNum(kpi.customers)} ลูกค้า · ${fmtNum(kpi.orders)} ออเดอร์`} color="#a78bfa" />
+        <KPICard label="ยอดขายเสนอ" value={fmtParts(kpi.quoted, "บาท")} sub="Pipeline / Quote ทั้งหมด" color="var(--text-muted)" delta={d("quoted")} />
+        <KPICard label="ยอดขาย (ปิดได้)" value={fmtParts(kpi.revenue, "บาท")} sub={`อัตราปิด ${fmtDec(closeOfQuote, 1)}% ของยอดเสนอ`} color={ACCENT} delta={d("revenue")} />
+        <KPICard label="AOV" value={fmtParts(kpi.aov, "บาท")} sub="ค่าเฉลี่ยต่อออเดอร์" color="#10b981" />
+        <KPICard label="เฉลี่ย 1 คนซื้อ" value={{ num: fmtDec(kpi.avgPurchase, 2), unit: "ครั้ง/คน" }} sub={`${fmtNum(kpi.customers)} ลูกค้า · ${fmtNum(kpi.orders)} ออเดอร์`} color="#a78bfa" />
       </div>
 
       {/* KPI row 2 */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 20 }}>
-        <KPICard label="Count QA" value={fmtNum(kpi.qaCount)} sub="Lead / Inquiry ทั้งหมด" color="var(--text-dim)" delta={d("qaCount")} />
-        <KPICard label="Total Orders" value={fmtNum(kpi.orders)} sub="ออเดอร์ที่ปิดได้" color="#3b82f6" delta={d("orders")} />
+        <KPICard label="Count QA" value={fmtParts(kpi.qaCount, "")} sub="Lead / Inquiry ทั้งหมด" color="var(--text-dim)" delta={d("qaCount")} />
+        <KPICard label="Total Orders" value={fmtParts(kpi.orders, "")} sub="ออเดอร์ที่ปิดได้" color="#3b82f6" delta={d("orders")} />
         <KPICard label="% Close Rate (จาก QA)" value={`${fmtDec(kpi.closeRate, 1)}%`} sub={`${fmtNum(kpi.orders)} ÷ ${fmtNum(kpi.qaCount)} QA`} color={kpi.closeRate > 25 ? "#10b981" : kpi.closeRate > 15 ? "#f59e0b" : "#f87171"} />
-        <KPICard label="ส่วนต่าง (เสนอ−ปิด)" value={fmtB(kpi.quoted - kpi.revenue)} sub="ยอดที่เสนอแต่ยังไม่ปิด" color="#f59e0b" />
+        <KPICard label="ส่วนต่าง (เสนอ−ปิด)" value={fmtParts(kpi.quoted - kpi.revenue, "บาท")} sub="ยอดที่เสนอแต่ยังไม่ปิด" color="#f59e0b" />
       </div>
 
       {/* ยอดเสนอ vs ยอดขาย (ข้อ 7) */}
