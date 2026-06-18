@@ -1,8 +1,8 @@
-// ─────────────────────────────────────────────────────────────
+// ──────────────────────────────────────────────────────────────
 // DateRangePicker.jsx — ตัวเลือก "ช่วงวันที่" (แทน CompareControl เดิม)
 //   pill โชว์ YYYY-MM-DD → YYYY-MM-DD · กดเปิด popover
 //   แท็บ: ด่วน / เดือน / สัปดาห์ / กำหนดเอง
-// ─────────────────────────────────────────────────────────────
+// ──────────────────────────────────────────────────────────────
 
 import { useState } from "react";
 import { ACCENT } from "../config/constants.js";
@@ -38,6 +38,16 @@ const chipStyle = (active) => ({
   background: active ? ACCENT : "var(--bg-chip)",
   border: `1px solid ${active ? ACCENT : "var(--border-default)"}`,
   color: active ? "#fff" : "var(--text-muted)", fontWeight: active ? 700 : 400,
+  fontFamily: "'IBM Plex Sans Thai', sans-serif",
+});
+
+// แถวรายการเดือน (ลิสต์เรียงลงมา) — ชื่อเดือนซ้าย + ช่วงวันที่ขวา
+const monthRowStyle = (active) => ({
+  display: "flex", alignItems: "center", justifyContent: "space-between",
+  width: "100%", padding: "11px 14px", borderRadius: 10, cursor: "pointer",
+  background: active ? "var(--bg-chip)" : "transparent",
+  border: `1px solid ${active ? ACCENT : "transparent"}`,
+  transition: "all 0.12s", textAlign: "left",
   fontFamily: "'IBM Plex Sans Thai', sans-serif",
 });
 
@@ -140,37 +150,58 @@ export default function DateRangePicker({ start, end, rows, onChange }) {
               </div>
             )}
 
+            {/* แท็บเดือน — รายการลิสต์เรียงลงมา (เดือน + ช่วงวันที่) */}
             {tab === "month" && (
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, maxHeight: 180, overflowY: "auto" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 2, maxHeight: 280, overflowY: "auto" }}>
                 {months.length === 0 && (
                   <span style={{ fontSize: 14, color: "var(--text-faint)" }}>ไม่มีข้อมูลเดือน</span>
                 )}
-                {months.map((m) => (
-                  <button key={`${m.year}-${m.month}`} onClick={() => pickMonth(m.year, m.month)}
-                    style={chipStyle(matches(monthRange(m.year, m.month, rows)))}>
-                    {m.month} {String(m.year).slice(-2)}
-                  </button>
-                ))}
+                {months.map((m) => {
+                  const r = monthRange(m.year, m.month, rows);
+                  const active = matches(r);
+                  const dStart = r.start.getDate();
+                  const dEnd = r.end.getDate();
+                  const rangeLabel = `${String(dStart).padStart(2, "0")} – ${String(dEnd).padStart(2, "0")}`;
+                  return (
+                    <button key={`${m.year}-${m.month}`} onClick={() => pickMonth(m.year, m.month)}
+                      style={monthRowStyle(active)}>
+                      <span style={{
+                        fontSize: 15, fontWeight: active ? 700 : 500,
+                        color: active ? ACCENT : "var(--text-primary)",
+                      }}>
+                        {m.month} {m.year}
+                      </span>
+                      <span style={{
+                        fontSize: 13, color: "var(--text-faint)",
+                        fontFamily: "'IBM Plex Mono', monospace",
+                      }}>
+                        {rangeLabel}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             )}
 
             {tab === "custom" && (
-              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-                  <label style={{ fontSize: 14, color: "var(--text-muted)" }}>จาก</label>
+              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  <label style={{ fontSize: 14, color: "var(--text-muted)", fontWeight: 500 }}>วันที่เริ่ม</label>
                   <input type="date" value={customStart} onChange={(e) => setCustomStart(e.target.value)}
                     style={inputStyle} />
-                  <label style={{ fontSize: 14, color: "var(--text-muted)" }}>ถึง</label>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  <label style={{ fontSize: 14, color: "var(--text-muted)", fontWeight: 500 }}>ถึงวันที่</label>
                   <input type="date" value={customEnd} onChange={(e) => setCustomEnd(e.target.value)}
                     style={inputStyle} />
                 </div>
                 <button onClick={applyCustom}
                   style={{
-                    alignSelf: "flex-start", padding: "8px 20px", borderRadius: 10, cursor: "pointer",
-                    background: ACCENT, color: "#fff", border: "none", fontSize: 14, fontWeight: 700,
-                    fontFamily: "'IBM Plex Sans Thai', sans-serif",
+                    width: "100%", padding: "12px 20px", borderRadius: 10, cursor: "pointer",
+                    background: ACCENT, color: "#fff", border: "none", fontSize: 15, fontWeight: 700,
+                    fontFamily: "'IBM Plex Sans Thai', sans-serif", marginTop: 4,
                   }}>
-                  ใช้ช่วงนี้
+                  ดูข้อมูล
                 </button>
               </div>
             )}
@@ -182,7 +213,8 @@ export default function DateRangePicker({ start, end, rows, onChange }) {
 }
 
 const inputStyle = {
-  fontSize: 14, padding: "7px 10px", borderRadius: 8,
+  width: "100%", boxSizing: "border-box",
+  fontSize: 15, padding: "11px 12px", borderRadius: 8,
   background: "var(--bg-chip)", color: "var(--text-primary)",
   border: "1px solid var(--border-default)", fontFamily: "'IBM Plex Sans Thai', sans-serif",
 };

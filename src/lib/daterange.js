@@ -1,14 +1,13 @@
-// ─────────────────────────────────────────────────────────────
+// ──────────────────────────────────────────────────────────────
 // daterange.js — ระบบกรองตาม "ช่วงวันที่" (date range) + trend + เทียบช่วงก่อนหน้า
 //
-// แทนที่ระบบโหมดเทียบเดิม (compare.js) — ตอนนี้ทุกอย่างกรองด้วยช่วง [start, end]
 // row มี { year, month(ไทยย่อ), day } · เราแปลงเป็นเลข YYYYMMDD เพื่อเทียบเร็ว
-// ─────────────────────────────────────────────────────────────
+// ──────────────────────────────────────────────────────────────
 
 import { MONTHS, monthIndex } from "../config/constants.js";
 import { sum } from "./format.js";
 
-// ── helper วันที่ ────────────────────────────────────────────
+// ── helper วันที่ ──
 
 // แปลง row → เลข YYYYMMDD (day ที่หาย/เป็น 0 → ถือเป็นวันที่ 1 ของเดือน)
 export const rowDateInt = (r) => {
@@ -55,7 +54,7 @@ export const spanDays = (start, end) =>
 
 const stripTime = (dt) => new Date(dt.getFullYear(), dt.getMonth(), dt.getDate());
 
-// วันล่าสุดที่มีข้อมูลจริง (ใช้เป็น "วันนี้" ของ dashboard) — fallback = วันนี้จริง
+// วันล่าสุดที่มีข้อมูลจริง — fallback = วันนี้จริง
 export function latestDataDate(rows) {
   let max = 0;
   for (const r of rows) {
@@ -75,50 +74,54 @@ export function earliestDataDate(rows) {
   return Number.isFinite(min) ? intToDate(min) : stripTime(new Date());
 }
 
-// ── presets (อิงวันล่าสุดของข้อมูลเป็น "วันนี้") ───────────────
+// ── presets ──
 // คืน { start, end } เป็น Date
+//   ช่วงที่อิง "วันนี้จริง" (thisMonth/thisWeek/thisYear + lastN) → ใช้ new Date()
+//   ช่วงที่อิง "ข้อมูล" (all) → ใช้วันล่าสุดในข้อมูล
 export function presetRange(id, rows) {
-  const ref = latestDataDate(rows); // "วันนี้"
-  const end = ref;
+  const today = stripTime(new Date()); // วันนี้จริงตามปฏิทิน
+  const end = today;
   switch (id) {
     case "thisMonth":
-      return { start: new Date(ref.getFullYear(), ref.getMonth(), 1), end };
+      // เดือนปัจจุบันจริง: วันที่ 1 ของเดือนนี้ → วันนี้
+      return { start: new Date(today.getFullYear(), today.getMonth(), 1), end };
     case "last7":
-      return { start: addDays(ref, -6), end };
+      return { start: addDays(today, -6), end };
     case "last14":
-      return { start: addDays(ref, -13), end };
+      return { start: addDays(today, -13), end };
     case "last30":
-      return { start: addDays(ref, -29), end };
+      return { start: addDays(today, -29), end };
     case "thisWeek": {
-      // สัปดาห์เริ่มวันจันทร์
-      const dow = (ref.getDay() + 6) % 7; // จ.=0 ... อา.=6
-      return { start: addDays(ref, -dow), end };
+      // สัปดาห์นี้ (เริ่มวันจันทร์) ถึงวันนี้
+      const dow = (today.getDay() + 6) % 7; // จ.=0 ... อา.=6
+      return { start: addDays(today, -dow), end };
     }
     case "lastWeek": {
-      const dow = (ref.getDay() + 6) % 7;
-      const thisMon = addDays(ref, -dow);
+      const dow = (today.getDay() + 6) % 7;
+      const thisMon = addDays(today, -dow);
       return { start: addDays(thisMon, -7), end: addDays(thisMon, -1) };
     }
     case "last2w":
-      return { start: addDays(ref, -13), end };
+      return { start: addDays(today, -13), end };
     case "last4w":
-      return { start: addDays(ref, -27), end };
+      return { start: addDays(today, -27), end };
     case "thisYear":
-      return { start: new Date(ref.getFullYear(), 0, 1), end };
+      return { start: new Date(today.getFullYear(), 0, 1), end };
     case "all":
-      return { start: earliestDataDate(rows), end };
+      // ทั้งหมด: ครอบตั้งแต่วันแรกที่มีข้อมูล → วันล่าสุดที่มีข้อมูล
+      return { start: earliestDataDate(rows), end: latestDataDate(rows) };
     default:
-      return { start: new Date(ref.getFullYear(), ref.getMonth(), 1), end };
+      return { start: new Date(today.getFullYear(), today.getMonth(), 1), end };
   }
 }
 
-// ช่วงของ "ทั้งเดือน" (cap ปลายไม่ให้เกินวันล่าสุดของข้อมูลถ้าเป็นเดือนปัจจุบัน)
+// ช่วงของ "ทั้งเดือน" (cap ปลายไม่ให้เกินวันนี้จริง ถ้าเป็นเดือนปัจจุบัน)
 export function monthRange(year, monthThai, rows) {
   const mi = monthIndex(monthThai);
   const start = new Date(year, mi, 1);
   const lastDay = new Date(year, mi + 1, 0); // วันสุดท้ายของเดือน
-  const ref = latestDataDate(rows);
-  const end = dateToInt(lastDay) > dateToInt(ref) ? ref : lastDay;
+  const today = stripTime(new Date());
+  const end = dateToInt(lastDay) > dateToInt(today) ? today : lastDay;
   return { start, end: dateToInt(end) >= dateToInt(start) ? end : lastDay };
 }
 
@@ -136,7 +139,7 @@ export function availableMonths(rows) {
   return out.sort((a, b) => b.year - a.year || b.mi - a.mi);
 }
 
-// ── กรองตามช่วง ──────────────────────────────────────────────
+// ── กรองตามช่วง ──
 export function filterByRange(rows, start, end) {
   const s = dateToInt(start);
   const e = dateToInt(end);
@@ -146,7 +149,7 @@ export function filterByRange(rows, start, end) {
   });
 }
 
-// ── จุดข้อมูล trend ───────────────────────────────────────────
+// ── จุดข้อมูล trend ──
 const calcPoint = (rows, label, extra = {}) => {
   const quoted = sum(rows, "quotedRevenue");
   const revenue = sum(rows, "revenue");
@@ -211,7 +214,7 @@ export function buildTrendRange(rows, start, end) {
   return { granularity: "month", data, title: fmtRange };
 }
 
-// ── เทียบช่วงก่อนหน้า (เท่าความยาวกัน ติดกับ start) ──────────────
+// ── เทียบช่วงก่อนหน้า (เท่าความยาวกัน ติดกับ start) ──
 //   ใช้กับ delta ของการ์ด KPI
 export function computeDeltaRange(rows, start, end) {
   const days = spanDays(start, end);
@@ -238,7 +241,7 @@ export function computeDeltaRange(rows, start, end) {
   };
 }
 
-// ── รวม ad spend ในช่วง ───────────────────────────────────────
+// ── รวม ad spend ในช่วง ──
 export function adSpendForRange(adSpendDaily, start, end) {
   if (!adSpendDaily || !adSpendDaily.length) return 0;
   const s = dateToInt(start);

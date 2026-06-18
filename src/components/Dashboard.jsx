@@ -1,7 +1,7 @@
-// ─────────────────────────────────────────────────────────────
+// ──────────────────────────────────────────────────────────────
 // Dashboard.jsx — orchestrate: ถือ state (filter + ช่วงวันที่) + layout
 // ช่วงวันที่คุมทั้ง dashboard (KPI / กราฟ / ตาราง) ผ่าน lib/daterange.js
-// ─────────────────────────────────────────────────────────────
+// ──────────────────────────────────────────────────────────────
 
 import { useState, useMemo, useEffect } from "react";
 import { ACCENT } from "../config/constants.js";
@@ -38,7 +38,7 @@ export default function Dashboard({ rows, adSpendDaily, theme, onToggleTheme, er
   const [range, setRange] = useState(null); // { start, end } (Date)
   const [didInit, setDidInit] = useState(false);
 
-  // ตั้งค่าเริ่มต้นครั้งแรกที่ข้อมูลมา — "เดือนนี้" (อิงวันล่าสุดของข้อมูล)
+  // ตั้งค่าเริ่มต้นครั้งแรกที่ข้อมูลมา — "เดือนนี้" (อิงวันนี้จริง)
   useEffect(() => {
     if (didInit || rows.length === 0) return;
     setRange(presetRange("thisMonth", rows));
@@ -103,7 +103,7 @@ export default function Dashboard({ rows, adSpendDaily, theme, onToggleTheme, er
   const closeOfQuote = kpi.quoted > 0 ? (kpi.revenue / kpi.quoted) * 100 : 0;
 
   return (
-    <div style={{ background: "var(--bg-page)", minHeight: "100vh", padding: "24px 28px", fontFamily: "'IBM Plex Sans Thai', sans-serif", color: "var(--text-primary)" }}>
+    <div style={{ background: "var(--bg-page)", minHeight: "100vh", padding: "34px 40px", fontFamily: "'IBM Plex Sans Thai', sans-serif", color: "var(--text-primary)", fontSize: 18 }}>
       <Header
         filteredCount={filtered.length} totalCount={rows.length} hasFilter={hasFilter}
         theme={theme} error={error} lastUpdated={lastUpdated}
@@ -118,7 +118,7 @@ export default function Dashboard({ rows, adSpendDaily, theme, onToggleTheme, er
       )}
 
       {/* KPI row 1 */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 12 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 18, marginBottom: 18 }}>
         <KPICard label="ยอดขายเสนอ" value={fmtParts(kpi.quoted, "บาท")} sub="Pipeline / Quote ทั้งหมด" color="var(--text-muted)" delta={d("quoted")} />
         <KPICard label="ยอดขาย (ปิดได้)" value={fmtParts(kpi.revenue, "บาท")} sub={`อัตราปิด ${fmtDec(closeOfQuote, 1)}% ของยอดเสนอ`} color={ACCENT} delta={d("revenue")} />
         <KPICard label="AOV" value={fmtParts(kpi.aov, "บาท")} sub="ค่าเฉลี่ยต่อออเดอร์" color="#10b981" />
@@ -126,7 +126,7 @@ export default function Dashboard({ rows, adSpendDaily, theme, onToggleTheme, er
       </div>
 
       {/* KPI row 2 */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 20 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 18, marginBottom: 28 }}>
         <KPICard label="Count QA" value={fmtParts(kpi.qaCount, "")} sub="Lead / Inquiry ทั้งหมด" color="var(--text-dim)" delta={d("qaCount")} />
         <KPICard label="Total Orders" value={fmtParts(kpi.orders, "")} sub="ออเดอร์ที่ปิดได้" color="#3b82f6" delta={d("orders")} />
         <KPICard label="% Close Rate (จาก QA)" value={`${fmtDec(kpi.closeRate, 1)}%`} sub={`${fmtNum(kpi.orders)} ÷ ${fmtNum(kpi.qaCount)} QA`} color={kpi.closeRate > 25 ? "#10b981" : kpi.closeRate > 15 ? "#f59e0b" : "#f87171"} />
@@ -134,13 +134,13 @@ export default function Dashboard({ rows, adSpendDaily, theme, onToggleTheme, er
       </div>
 
       {/* ยอดเสนอ vs ยอดขาย (ข้อ 7) */}
-      <div style={{ marginBottom: 20 }}>
+      <div style={{ marginBottom: 28 }}>
         <OfferVsSalesPanel trend={trend} />
       </div>
 
       {/* SKU bar + customer mix + top customers */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18, marginBottom: 18 }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 26, marginBottom: 26 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 26 }}>
           <SkuBarChart skuData={skuData} activeSku={activeSku} onToggleSku={(s) => toggle(s, setActiveSku, activeSku)} />
           <CustomerMixDonut mixData={customerMix} activeCustomer={activeCustomer} onToggleCustomer={(c) => toggle(c, setActiveCustomer, activeCustomer)} />
         </div>
@@ -148,7 +148,7 @@ export default function Dashboard({ rows, adSpendDaily, theme, onToggleTheme, er
       </div>
 
       {/* channel + sku table */}
-      <div style={{ display: "grid", gridTemplateColumns: "260px 1fr", gap: 18, marginBottom: 18 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "360px 1fr", gap: 26, marginBottom: 26 }}>
         <ChannelCards
           channelData={channelData} visibleChannels={visibleChannels} activeChannel={activeChannel} showPicker={showChannelPicker}
           onToggleChannel={(ch) => toggle(ch, setActiveChannel, activeChannel)}

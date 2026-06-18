@@ -1,58 +1,115 @@
-// ─────────────────────────────────────────────────────────────
-// metaAdsSnapshot.js — ข้อมูลโฆษณา "ของจริง" จาก TTC Ad Account (Meta)
+// ──────────────────────────────────────────────────────────────
+// metaAdsSnapshot.js — โครงข้อมูล Meta Ads (placeholder)
 //
-// ⚠️ นี่คือ SNAPSHOT (ดึงครั้งเดียว) — ไม่อัปเดตอัตโนมัติ
-//    ดึงเมื่อ 2026-06-18 · ช่วง 1–18 มิ.ย. 2026 · บัญชี TTC Ad Account (359318456016031)
+// ⚠️ ตัวเลขเป็น placeholder — รอต่อ Meta realtime ผ่าน Cloudflare Worker
+//   เมื่อ Worker พร้อม: ให้ fetch จาก Worker แล้ว return object รูปเดียวกันนี้
+//   โครงสร้างนี้ออกแบบให้ component อ่านได้ทันที ไม่ต้องแก้ MetaAdsReport.jsx
 //
-// ขั้นถัดไป (realtime): เปลี่ยนมา fetch จาก Google Apps Script proxy ที่ดึง Meta API สด
-//    โครงสร้าง object นี้ออกแบบให้ proxy คืนรูปแบบเดียวกันได้เลย
-// ─────────────────────────────────────────────────────────────
+//   วิธีต่อจริงทีหลัง (ใน useSheetData หรือ hook ใหม่):
+//     const res = await fetch("https://<worker>.workers.dev/meta-insights");
+//     const META = await res.json();  // รูปแบบเดียวกับ META_SNAPSHOT
+// ──────────────────────────────────────────────────────────────
 
 export const META_SNAPSHOT = {
   meta: {
-    account: "TTC Ad Account",
-    accountId: "359318456016031",
-    currency: "THB",
+    account: "TTC Factory Ad Account",
     dateStart: "2026-06-01",
-    dateStop: "2026-06-18",
-    pulledAt: "2026-06-18",
-    source: "snapshot", // เปลี่ยนเป็น "live" เมื่อต่อ proxy
+    dateStop: "2026-06-30",
+    currency: "THB",
+    source: "snapshot",      // "snapshot" | "live"
+    pulledAt: "2026-06-19",
   },
 
-  // แคมเปญที่กำลังรัน (ACTIVE) — เรียงตามงบมาก→น้อย
-  // results = จำนวน "เริ่มแชท" (Messaging conversations started)
-  campaigns: [
-    { name: "260218_TTC_MSG_New content 2026 สติ๊กเกอร์", status: "ACTIVE", objective: "OUTCOME_ENGAGEMENT",
-      spend: 11543.23, reach: 16452, impressions: 56133, clicks: 813, cpc: 14.20, cpm: 205.64, ctr: 1.45, results: 61, costPerResult: 189.23 },
-    { name: "250716_TTC_MSG_Custom_Hitbox", status: "ACTIVE", objective: "OUTCOME_ENGAGEMENT",
-      spend: 9311.26, reach: 43066, impressions: 88561, clicks: 1870, cpc: 4.98, cpm: 105.14, ctr: 2.11, results: 200, costPerResult: 46.56 },
-    { name: "260406_TTC_MSG_New content 2026 นามบัตร", status: "ACTIVE", objective: "OUTCOME_ENGAGEMENT",
-      spend: 7322.20, reach: 14754, impressions: 38873, clicks: 758, cpc: 9.66, cpm: 188.36, ctr: 1.95, results: 95, costPerResult: 77.08 },
-    { name: "250704_TCC_inboxretarget_", status: "ACTIVE", objective: "OUTCOME_ENGAGEMENT",
-      spend: 5590.13, reach: 6000, impressions: 21785, clicks: 461, cpc: 12.13, cpm: 256.60, ctr: 2.12, results: 39, costPerResult: 143.34 },
-    { name: "260113_TTC_MSG_New content 2026", status: "ACTIVE", objective: "OUTCOME_ENGAGEMENT",
-      spend: 3741.76, reach: 14880, impressions: 38428, clicks: 860, cpc: 4.35, cpm: 97.37, ctr: 2.24, results: 56, costPerResult: 66.82 },
-  ],
+  // ── KPI การ์ดบนสุด (4 ตัว) — มี delta vs เดือนก่อน ──
+  kpi: {
+    spend: 48250,            // งบที่ใช้ (บาท)
+    costPerResult: 154.65,   // ต้นทุนต่อข้อความ (บาท)
+    results: 312,            // จำนวนข้อความ
+    reach: 284910,           // การเข้าถึง
+    deltaSpend: 2.0,         // % vs เดือนก่อน
+    deltaCostPerResult: 5.4,
+    deltaResults: 8.8,
+    deltaReach: -12.2,
+  },
 
-  // เทรนด์รายวัน (ระดับบัญชี) — results รายวันไม่มีจาก API จึงเก็บ spend/reach/impr/clicks
-  daily: [
-    { day: 1,  spend: 1705.62, reach: 8158,  impressions: 13644, clicks: 211 },
-    { day: 2,  spend: 2918.30, reach: 17331, impressions: 25494, clicks: 411 },
-    { day: 3,  spend: 2334.16, reach: 10295, impressions: 15139, clicks: 295 },
-    { day: 4,  spend: 1971.97, reach: 9722,  impressions: 14289, clicks: 274 },
-    { day: 5,  spend: 2046.79, reach: 6575,  impressions: 11318, clicks: 276 },
-    { day: 6,  spend: 1687.67, reach: 5077,  impressions: 8568,  clicks: 197 },
-    { day: 7,  spend: 2031.02, reach: 8970,  impressions: 14569, clicks: 284 },
-    { day: 8,  spend: 2464.34, reach: 7279,  impressions: 12078, clicks: 228 },
-    { day: 9,  spend: 2577.36, reach: 9963,  impressions: 15435, clicks: 271 },
-    { day: 10, spend: 2112.66, reach: 7613,  impressions: 11963, clicks: 256 },
-    { day: 11, spend: 1873.59, reach: 6543,  impressions: 10720, clicks: 218 },
-    { day: 12, spend: 1472.32, reach: 6901,  impressions: 10389, clicks: 204 },
-    { day: 13, spend: 1451.08, reach: 7401,  impressions: 11537, clicks: 225 },
-    { day: 14, spend: 1906.52, reach: 7889,  impressions: 13170, clicks: 270 },
-    { day: 15, spend: 1985.80, reach: 6152,  impressions: 11858, clicks: 229 },
-    { day: 16, spend: 2796.90, reach: 11565, impressions: 19062, clicks: 353 },
-    { day: 17, spend: 2018.59, reach: 7561,  impressions: 11991, clicks: 269 },
-    { day: 18, spend: 2153.89, reach: 7601,  impressions: 12556, clicks: 291 },
+  // ── กราฟรายวัน (31 วัน) — แต่ละ metric แยก series ──
+  //   messages = ข้อความ, leadform = Leadform, reach = Reach, spend = งบ (เส้น)
+  daily: Array.from({ length: 31 }, (_, i) => {
+    const day = i + 1;
+    // ค่า placeholder รูปคลื่น (ให้กราฟดูมีชีวิต)
+    const wave = Math.sin(i / 3) * 0.5 + 0.5;
+    return {
+      day,
+      messages: Math.round(1400 + wave * 1000 + (i % 5) * 60),
+      leadform: Math.round(800 + wave * 600 + (i % 4) * 40),
+      reach: Math.round(6000 + wave * 4000 + (i % 6) * 200),
+      spend: Math.round(1200 + wave * 800 + (i % 7) * 50),
+    };
+  }),
+
+  // ── Funnel (เส้นทางลูกค้า) ──
+  funnel: {
+    reach: 284910,
+    clicks: 7750,
+    ctr: 2.7,                // %
+    results: 312,            // ทักแชท / Leadform
+    costPerResult: 154.65,
+  },
+
+  // ── สัดส่วนงบ — แยกตาม 3 มิติ (โดนัท toggle) ──
+  budgetBreakdown: {
+    gender: [
+      { name: "หญิง", value: 26500, color: "#2f6bff" },
+      { name: "ชาย", value: 20200, color: "#7c5cff" },
+      { name: "ไม่ระบุ", value: 1550, color: "#0bb5c9" },
+    ],
+    age: [
+      { name: "18-24", value: 7200, color: "#2f6bff" },
+      { name: "25-34", value: 18400, color: "#7c5cff" },
+      { name: "35-44", value: 12600, color: "#0bb5c9" },
+      { name: "45-54", value: 6800, color: "#d99514" },
+      { name: "55+", value: 3250, color: "#e06fae" },
+    ],
+    province: [
+      { name: "กรุงเทพฯ", value: 19800, color: "#2f6bff" },
+      { name: "นนทบุรี", value: 9200, color: "#7c5cff" },
+      { name: "สมุทรปราการ", value: 7600, color: "#0bb5c9" },
+      { name: "ชลบุรี", value: 6100, color: "#d99514" },
+      { name: "อื่นๆ", value: 5550, color: "#e06fae" },
+    ],
+  },
+
+  // ── ผลลัพธ์ตามกลุ่มอายุ × เพศ (stacked bar) ──
+  //   แยก metric: messages / leadform / reach (toggle)
+  ageGender: {
+    messages: [
+      { age: "18-24", female: 42, male: 30 },
+      { age: "25-34", female: 95, male: 70 },
+      { age: "35-44", female: 58, male: 46 },
+      { age: "45-54", female: 28, male: 22 },
+      { age: "55+", female: 10, male: 11 },
+    ],
+    leadform: [
+      { age: "18-24", female: 28, male: 20 },
+      { age: "25-34", female: 60, male: 44 },
+      { age: "35-44", female: 38, male: 30 },
+      { age: "45-54", female: 18, male: 14 },
+      { age: "55+", female: 7, male: 6 },
+    ],
+    reach: [
+      { age: "18-24", female: 38000, male: 30000 },
+      { age: "25-34", female: 72000, male: 58000 },
+      { age: "35-44", female: 44000, male: 36000 },
+      { age: "45-54", female: 22000, male: 18000 },
+      { age: "55+", female: 9000, male: 8000 },
+    ],
+  },
+
+  // ── ตารางแคมเปญ ──
+  campaigns: [
+    { name: "M2605 · Conversion – เมนูใหม่", objective: "Conversion", spend: 18400, results: 142, costPerResult: 129.58, lead: 96, cpl: 191.67, reach: 98200, status: "Active" },
+    { name: "M2606 · Messages – โปรชุดเซ็ต", objective: "Messages", spend: 12600, results: 108, costPerResult: 116.67, lead: 61, cpl: 206.56, reach: 71500, status: "Active" },
+    { name: "M2607 · Traffic – รีวิวลูกค้า", objective: "Traffic", spend: 9250, results: 48, costPerResult: 192.71, lead: 33, cpl: 280.30, reach: 64300, status: "Active" },
+    { name: "M2608 · Awareness – แบรนด์", objective: "Awareness", spend: 8000, results: 14, costPerResult: 571.43, lead: 9, cpl: 888.89, reach: 50910, status: "Pause" },
   ],
 };
