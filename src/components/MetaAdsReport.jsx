@@ -1,8 +1,7 @@
 // ──────────────────────────────────────────────────────────────
 // MetaAdsReport.jsx — รายงานผลโฆษณา Meta (TTC Ad Account)
-//   หน้าตาตามดีไซน์เป้าหมาย · ตัวเลข placeholder (รอต่อ Meta realtime ผ่าน Cloudflare)
-//   6 ส่วน: KPI / กราฟรายวัน+Funnel / โดนัทงบ+อายุเพศ / ตารางแคมเปญ
-//   toggle ใช้ได้จริง (ข้อความ/Leadform/Reach · เพศ/อายุ/จังหวัด)
+//   หน้าตาตามดีไซน์ · ตัวเลข+รูป placeholder (รอต่อ Meta realtime ผ่าน Cloudflare)
+//   ตารางแคมเปญคลิกขยาย 2 ชั้น: แคมเปญ → กลุ่มเป้าหมาย → คอนเทนต์ + รูป (กดขยาย)
 // ──────────────────────────────────────────────────────────────
 
 import { useState } from "react";
@@ -15,7 +14,6 @@ import { fmt, fmtNum, fmtDec } from "../lib/format.js";
 import { tooltipProps, cardStyle } from "./ui.js";
 import { META_SNAPSHOT } from "../data/metaAdsSnapshot.js";
 
-// metric สำหรับ toggle กราฟ
 const DAILY_METRICS = [
   { id: "messages", label: "ข้อความ", color: "#7c5cff" },
   { id: "leadform", label: "Leadform", color: "#2f6bff" },
@@ -27,7 +25,6 @@ const BREAKDOWN_DIMS = [
   { id: "province", label: "แบ่งตามจังหวัด" },
 ];
 
-// ปุ่ม toggle เล็ก (segmented)
 function SegToggle({ options, value, onChange }) {
   return (
     <div style={{ display: "inline-flex", gap: 2, padding: 3, borderRadius: 10, background: "var(--bg-chip)" }}>
@@ -50,11 +47,10 @@ function SegToggle({ options, value, onChange }) {
   );
 }
 
-// การ์ด KPI พร้อม delta
 function MetaKpiCard({ label, value, unit, delta }) {
   const up = delta >= 0;
   return (
-    <div style={{ ...cardStyle, display: "flex", flexDirection: "column", gap: 8, position: "relative" }}>
+    <div style={{ ...cardStyle, display: "flex", flexDirection: "column", gap: 8 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
         <span style={{ fontSize: 15, color: "var(--text-faint)" }}>{label}</span>
         <span style={{
@@ -79,7 +75,6 @@ function MetaKpiCard({ label, value, unit, delta }) {
   );
 }
 
-// แถว Funnel
 function FunnelRow({ label, sublabel, value, pct, color }) {
   return (
     <div style={{ ...cardStyle, padding: "16px 18px", display: "flex", flexDirection: "column", gap: 10 }}>
@@ -103,12 +98,35 @@ function FunnelRow({ label, sublabel, value, pct, color }) {
   );
 }
 
+// badge สถานะ Active/Pause
+function StatusBadge({ status }) {
+  const active = status === "Active";
+  return (
+    <span style={{
+      display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 11px", borderRadius: 12,
+      background: active ? "#e7f6ec" : "var(--bg-chip)",
+      color: active ? "#16a34a" : "var(--text-faint)", fontSize: 12, fontWeight: 600,
+    }}>
+      <span style={{ width: 6, height: 6, borderRadius: "50%", background: active ? "#16a34a" : "#9ca3af" }} />
+      {status}
+    </span>
+  );
+}
+
 export default function MetaAdsReport({ data = META_SNAPSHOT }) {
   const { meta, kpi, daily, funnel, budgetBreakdown, ageGender, campaigns } = data;
 
   const [dailyMetric, setDailyMetric] = useState("messages");
   const [breakdownDim, setBreakdownDim] = useState("gender");
   const [ageMetric, setAgeMetric] = useState("messages");
+
+  // คลิกขยาย: เก็บ id ที่กางอยู่
+  const [openCampaigns, setOpenCampaigns] = useState({});
+  const [openAdsets, setOpenAdsets] = useState({});
+  const [lightbox, setLightbox] = useState(null); // { url, name }
+
+  const toggleCampaign = (id) => setOpenCampaigns((s) => ({ ...s, [id]: !s[id] }));
+  const toggleAdset = (id) => setOpenAdsets((s) => ({ ...s, [id]: !s[id] }));
 
   const activeDaily = DAILY_METRICS.find((m) => m.id === dailyMetric);
   const pieData = budgetBreakdown[breakdownDim];
@@ -137,7 +155,7 @@ export default function MetaAdsReport({ data = META_SNAPSHOT }) {
         </div>
       </div>
 
-      {/* ── 1. KPI 4 การ์ด ── */}
+      {/* 1. KPI 4 การ์ด */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 18 }}>
         <MetaKpiCard label="งบที่ใช้ (Spend)" value={fmtNum(kpi.spend)} unit="บาท" delta={kpi.deltaSpend} />
         <MetaKpiCard label="ต้นทุนต่อข้อความ" value={fmtDec(kpi.costPerResult, 2)} unit="บาท" delta={kpi.deltaCostPerResult} />
@@ -145,9 +163,8 @@ export default function MetaAdsReport({ data = META_SNAPSHOT }) {
         <MetaKpiCard label="การเข้าถึง (Reach)" value={fmtNum(kpi.reach)} delta={kpi.deltaReach} />
       </div>
 
-      {/* ── 2. กราฟรายวัน (ซ้าย) + Funnel (ขวา) ── */}
+      {/* 2. กราฟรายวัน + Funnel */}
       <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr", gap: 18 }}>
-        {/* กราฟรายวัน */}
         <div style={cardStyle}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 10, marginBottom: 12 }}>
             <div>
@@ -174,7 +191,6 @@ export default function MetaAdsReport({ data = META_SNAPSHOT }) {
           </ResponsiveContainer>
         </div>
 
-        {/* Funnel */}
         <div style={cardStyle}>
           <div style={{ fontSize: 17, color: "var(--text-heading)", fontWeight: 700 }}>เส้นทางลูกค้า (Funnel)</div>
           <div style={{ fontSize: 13, color: "var(--text-faint)", marginTop: 2, marginBottom: 14 }}>
@@ -189,9 +205,8 @@ export default function MetaAdsReport({ data = META_SNAPSHOT }) {
         </div>
       </div>
 
-      {/* ── 3. โดนัทงบ (ซ้าย) + อายุ×เพศ (ขวา) ── */}
+      {/* 3. โดนัทงบ + อายุ×เพศ */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1.5fr", gap: 18 }}>
-        {/* โดนัทสัดส่วนงบ */}
         <div style={cardStyle}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 10, marginBottom: 8 }}>
             <div>
@@ -211,7 +226,6 @@ export default function MetaAdsReport({ data = META_SNAPSHOT }) {
           </ResponsiveContainer>
         </div>
 
-        {/* stacked bar อายุ × เพศ */}
         <div style={cardStyle}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 10, marginBottom: 8 }}>
             <div>
@@ -227,14 +241,14 @@ export default function MetaAdsReport({ data = META_SNAPSHOT }) {
               <YAxis tick={{ fill: "var(--text-faint)", fontSize: 12 }} axisLine={false} tickLine={false} tickFormatter={fmt} width={48} />
               <Tooltip {...tooltipProps} formatter={(v, n) => [fmtNum(v), n === "female" ? "หญิง" : "ชาย"]} />
               <Legend wrapperStyle={{ fontSize: 13 }} formatter={(v) => (v === "female" ? "หญิง" : "ชาย")} />
-              <Bar dataKey="female" stackId="a" fill="#e06fae" radius={[0, 0, 0, 0]} maxBarSize={48} />
+              <Bar dataKey="female" stackId="a" fill="#e06fae" maxBarSize={48} />
               <Bar dataKey="male" stackId="a" fill="#2f6bff" radius={[4, 4, 0, 0]} maxBarSize={48} />
             </BarChart>
           </ResponsiveContainer>
         </div>
       </div>
 
-      {/* ── 4. ตารางแคมเปญ ── */}
+      {/* 4. ตารางแคมเปญ — คลิกขยาย 2 ชั้น */}
       <div style={cardStyle}>
         <div style={{ fontSize: 17, color: "var(--text-heading)", fontWeight: 700, marginBottom: 2 }}>ผลลัพธ์รายแคมเปญ</div>
         <div style={{ fontSize: 13, color: "var(--text-faint)", marginBottom: 14 }}>
@@ -255,38 +269,99 @@ export default function MetaAdsReport({ data = META_SNAPSHOT }) {
               </tr>
             </thead>
             <tbody>
-              {campaigns.map((c, i) => {
-                const active = c.status === "Active";
+              {campaigns.map((c) => {
+                const cOpen = !!openCampaigns[c.id];
                 return (
-                  <tr key={i} style={{ borderTop: "1px solid var(--border-subtle)" }}>
-                    <td style={{ ...td("left"), fontWeight: 600, color: "var(--text-heading)" }}>
-                      <span style={{ color: "var(--text-faint)", marginRight: 6 }}>▸</span>{c.name}
-                    </td>
-                    <td style={mono("right")}>{fmtNum(c.spend)} บาท</td>
-                    <td style={mono("right")}>{fmtNum(c.results)}</td>
-                    <td style={mono("right")}>{fmtDec(c.costPerResult, 2)} บาท</td>
-                    <td style={mono("right")}>{fmtNum(c.lead)}</td>
-                    <td style={mono("right")}>{fmtDec(c.cpl, 2)} บาท</td>
-                    <td style={mono("right")}>{fmtNum(c.reach)}</td>
-                    <td style={td("center")}>
-                      <span style={{
-                        display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 11px", borderRadius: 12,
-                        background: active ? "#e7f6ec" : "var(--bg-chip)",
-                        color: active ? "#16a34a" : "var(--text-faint)", fontSize: 12, fontWeight: 600,
-                      }}>
-                        <span style={{ width: 6, height: 6, borderRadius: "50%", background: active ? "#16a34a" : "#9ca3af" }} />
-                        {c.status}
-                      </span>
-                    </td>
-                  </tr>
+                  <FragmentRows key={c.id}>
+                    {/* แถวแคมเปญ */}
+                    <tr onClick={() => toggleCampaign(c.id)}
+                      style={{ borderTop: "1px solid var(--border-subtle)", cursor: "pointer", background: cOpen ? "var(--bg-chip)" : "transparent" }}>
+                      <td style={{ ...td("left"), fontWeight: 700, color: "var(--text-heading)" }}>
+                        <span style={{ display: "inline-block", width: 16, color: "var(--text-faint)", transform: cOpen ? "rotate(90deg)" : "none", transition: "transform 0.15s" }}>▸</span>
+                        {c.name}
+                      </td>
+                      <td style={mono("right")}>{fmtNum(c.spend)} บาท</td>
+                      <td style={mono("right")}>{fmtNum(c.results)}</td>
+                      <td style={mono("right")}>{fmtDec(c.costPerResult, 2)} บาท</td>
+                      <td style={mono("right")}>{fmtNum(c.lead)}</td>
+                      <td style={mono("right")}>{fmtDec(c.cpl, 2)} บาท</td>
+                      <td style={mono("right")}>{fmtNum(c.reach)}</td>
+                      <td style={td("center")}><StatusBadge status={c.status} /></td>
+                    </tr>
+
+                    {/* แถว ad set (กลุ่มเป้าหมาย) */}
+                    {cOpen && c.adsets.map((as) => {
+                      const asOpen = !!openAdsets[as.id];
+                      return (
+                        <FragmentRows key={as.id}>
+                          <tr onClick={() => toggleAdset(as.id)}
+                            style={{ borderTop: "1px solid var(--border-subtle)", cursor: "pointer", background: asOpen ? "var(--bg-chip)" : "var(--bg-page)" }}>
+                            <td style={{ ...td("left"), paddingLeft: 38, color: "var(--text-body)", fontWeight: 600 }}>
+                              <span style={{ display: "inline-block", width: 16, color: "var(--text-faint)", transform: asOpen ? "rotate(90deg)" : "none", transition: "transform 0.15s" }}>▸</span>
+                              👥 {as.name}
+                            </td>
+                            <td style={mono("right")}>{fmtNum(as.spend)} บาท</td>
+                            <td style={mono("right")}>{fmtNum(as.results)}</td>
+                            <td style={mono("right")}>—</td>
+                            <td style={mono("right")}>{fmtNum(as.lead)}</td>
+                            <td style={mono("right")}>{fmtDec(as.cpl, 2)} บาท</td>
+                            <td style={mono("right")}>{fmtNum(as.reach)}</td>
+                            <td style={td("center")}><StatusBadge status={as.status} /></td>
+                          </tr>
+
+                          {/* แถว ad (คอนเทนต์ + รูป) */}
+                          {asOpen && as.ads.map((ad) => (
+                            <tr key={ad.id} style={{ borderTop: "1px solid var(--border-subtle)", background: "var(--bg-page)" }}>
+                              <td style={{ ...td("left"), paddingLeft: 64 }}>
+                                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                                  <img src={ad.imageUrl} alt={ad.name} onClick={() => setLightbox({ url: ad.imageUrl, name: ad.name })}
+                                    style={{ width: 46, height: 46, borderRadius: 8, objectFit: "cover", cursor: "zoom-in", border: "1px solid var(--border-subtle)", flexShrink: 0 }} />
+                                  <div>
+                                    <div style={{ color: "var(--text-body)", fontWeight: 500 }}>{ad.name}</div>
+                                    <div style={{ fontSize: 12, color: "var(--text-faint)" }}>{ad.format} · CTR {fmtDec(ad.ctr, 1)}%</div>
+                                  </div>
+                                </div>
+                              </td>
+                              <td style={mono("right")}>{fmtNum(ad.spend)} บาท</td>
+                              <td style={mono("right")}>{fmtNum(ad.results)}</td>
+                              <td style={mono("right")}>—</td>
+                              <td style={mono("right")}>{fmtNum(ad.lead)}</td>
+                              <td style={mono("right")}>—</td>
+                              <td style={mono("right")}>{fmtNum(ad.reach)}</td>
+                              <td style={td("center")}>—</td>
+                            </tr>
+                          ))}
+                        </FragmentRows>
+                      );
+                    })}
+                  </FragmentRows>
                 );
               })}
             </tbody>
           </table>
         </div>
       </div>
+
+      {/* Lightbox ขยายรูป */}
+      {lightbox && (
+        <div onClick={() => setLightbox(null)}
+          style={{
+            position: "fixed", inset: 0, zIndex: 1000, background: "rgba(0,0,0,0.78)",
+            display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16, padding: 24, cursor: "zoom-out",
+          }}>
+          <img src={lightbox.url} alt={lightbox.name}
+            style={{ maxWidth: "90vw", maxHeight: "78vh", borderRadius: 14, boxShadow: "0 20px 60px rgba(0,0,0,0.5)" }} />
+          <div style={{ color: "#fff", fontSize: 16, fontWeight: 600, fontFamily: "'IBM Plex Sans Thai', sans-serif" }}>{lightbox.name}</div>
+          <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 13 }}>คลิกที่ใดก็ได้เพื่อปิด</div>
+        </div>
+      )}
     </div>
   );
+}
+
+// helper: group rows โดยไม่เพิ่ม DOM node (ใช้ใน tbody)
+function FragmentRows({ children }) {
+  return <>{children}</>;
 }
 
 const th = (align) => ({ padding: "8px 12px", textAlign: align, fontWeight: 500, whiteSpace: "nowrap" });
