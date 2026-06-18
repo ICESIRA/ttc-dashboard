@@ -1,19 +1,21 @@
 // ─────────────────────────────────────────────────────────────
-// Dashboard.jsx — orchestrate: ถือ state (filter + โหมดเทียบ) + layout
-// โหมดเทียบ 5 แบบจัดการที่นี่ · logic อยู่ใน lib/compare.js + analytics.js
+// Dashboard.jsx — orchestrate: ถือ state (filter + ช่วงวันที่) + layout
+// ช่วงวันที่คุมทั้ง dashboard (KPI / กราฟ / ตาราง) ผ่าน lib/daterange.js
 // ─────────────────────────────────────────────────────────────
 
 import { useState, useMemo, useEffect } from "react";
-import { ACCENT, MONTHS, getYearsFromRows } from "../config/constants.js";
+import { ACCENT } from "../config/constants.js";
 import {
   computeKPIs, computeSkuData, computeChannelData,
   computeTopCustomers, computeCustomerMix, computeTopChannels,
 } from "../lib/analytics.js";
-import { buildTrend, filterByMode, getMode, computeDelta, adSpendForPeriod, adSpendByPoint } from "../lib/compare.js";
+import {
+  presetRange, filterByRange, buildTrendRange, computeDeltaRange, adSpendForRange,
+} from "../lib/daterange.js";
 import { fmtB, fmtNum, fmtDec, fmtParts } from "../lib/format.js";
 
 import Header from "./Header.jsx";
-import CompareControl from "./CompareControl.jsx";
+import DateRangePicker from "./DateRangePicker.jsx";
 import KPICard from "./kpi/KPICard.jsx";
 import OfferVsSalesPanel from "./charts/OfferVsSalesPanel.jsx";
 import SkuBarChart from "./charts/SkuBarChart.jsx";
@@ -22,6 +24,7 @@ import TopCustomerTable from "./tables/TopCustomerTable.jsx";
 import ChannelCards from "./tables/ChannelCards.jsx";
 import SkuTable from "./tables/SkuTable.jsx";
 import SkuChannelHeatmap from "./tables/SkuChannelHeatmap.jsx";
+import MetaAdsReport from "./MetaAdsReport.jsx";
 
 export default function Dashboard({ rows, adSpendDaily, theme, onToggleTheme, error, lastUpdated, onRefresh }) {
   // ─── filter state (SKU / channel / customer) ───
@@ -31,47 +34,19 @@ export default function Dashboard({ rows, adSpendDaily, theme, onToggleTheme, er
   const [showChannelPicker, setShowChannelPicker] = useState(false);
   const [visibleChannels, setVisibleChannels] = useState(() => computeTopChannels(rows));
 
-  // ─── compare-mode state ───
-  const [mode, setMode] = useState("year");
-  const [selMonths, setSelMonths] = useState([]);
-  const [selYears, setSelYears] = useState([]);
-  const [startMonth, setStartMonth] = useState(null);
-  const [activeYear, setActiveYear] = useState(null);
+  // ─── date-range state ───
+  const [range, setRange] = useState(null); // { start, end } (Date)
   const [didInit, setDidInit] = useState(false);
 
-  const availableYears = useMemo(() => getYearsFromRows(rows), [rows]);
-
-  // ตั้งค่าเริ่มต้นครั้งแรกที่ข้อมูลมา — ปีล่าสุด + 3 เดือนล่าสุดที่มีข้อมูล
+  // ตั้งค่าเริ่มต้นครั้งแรกที่ข้อมูลมา — "เดือนนี้" (อิงวันล่าสุดของข้อมูล)
   useEffect(() => {
     if (didInit || rows.length === 0) return;
-    const ys = getYearsFromRows(rows);
-    const latestYear = ys[ys.length - 1]; // ปีล่าสุดที่มีข้อมูล (= 2026)
-    // ค่าเริ่มต้น: โหมดเทียบรายปี เลือกปีล่าสุดไว้
-    setSelYears([latestYear]);
-    setActiveYear(latestYear);
-    const monthsInYear = MONTHS.filter((mm) => rows.some((r) => r.year === latestYear && r.month === mm));
-    setStartMonth(monthsInYear[monthsInYear.length - 1] || null); // เผื่อสลับโหมด lookback
+    setRange(presetRange("thisMonth", rows));
     setDidInit(true);
   }, [rows, didInit]);
 
   const toggle = (val, setter, cur) => setter(cur === val ? null : val);
-  const m = getMode(mode);
 
-  const changeMode = (newMode) => {
-    setMode(newMode);
-    // ไม่ล้าง selYears/startMonth เพื่อคงบริบทเดิมเท่าที่ทำได้
-    if (getMode(newMode).pick === "month") setSelMonths([]);
-  };
-  const toggleMonth = (mm) => {
-    setSelMonths((prev) => {
-      if (prev.includes(mm)) return prev.filter((x) => x !== mm);
-      if (m.limit && prev.length >= m.limit) return prev;
-      return [...prev, mm];
-    });
-  };
-  const toggleYear = (y) => {
-    setSelYears((prev) => (prev.includes(y) ? prev.filter((x) => x !== y) : [...prev, y]));
-  };
   const toggleVisibleChannel = (ch) => {
     setVisibleChannels((prev) => {
       if (prev.includes(ch)) return prev.length <= 1 ? prev : prev.filter((x) => x !== ch);
@@ -89,15 +64,15 @@ export default function Dashboard({ rows, adSpendDaily, theme, onToggleTheme, er
     (!activeCustomer || r.customerType === activeCustomer)
   ), [rows, activeSku, activeChannel, activeCustomer]);
 
-  // rows หลัง filter เวลา (ตามโหมด) — ใช้กับ KPI + ตาราง
+  // rows หลัง filter ช่วงวันที่ — ใช้กับ KPI + ตาราง
   const filtered = useMemo(
-    () => filterByMode(filteredBase, mode, selMonths, selYears, activeYear, startMonth),
-    [filteredBase, mode, selMonths, selYears, activeYear, startMonth]
+    () => (range ? filterByRange(filteredBase, range.start, range.end) : filteredBase),
+    [filteredBase, range]
   );
 
   const periodAdSpend = useMemo(
-    () => adSpendForPeriod(adSpendDaily, mode, selMonths, selYears, activeYear, startMonth),
-    [adSpendDaily, mode, selMonths, selYears, activeYear, startMonth]
+    () => (range ? adSpendForRange(adSpendDaily, range.start, range.end) : 0),
+    [adSpendDaily, range]
   );
   const kpi = useMemo(() => {
     const k = computeKPIs(filtered);
@@ -105,22 +80,17 @@ export default function Dashboard({ rows, adSpendDaily, theme, onToggleTheme, er
     k.roas = periodAdSpend > 0 ? k.revenue / periodAdSpend : 0;
     return k;
   }, [filtered, periodAdSpend]);
-  const trend = useMemo(() => {
-    const t = buildTrend(filteredBase, mode, selMonths, selYears, activeYear, startMonth);
-    const adMap = adSpendByPoint(adSpendDaily, t.granularity, activeYear);
-    t.data = t.data.map((pt) => {
-      const ad = adMap[pt.label] || 0;
-      return { ...pt, adSpend: ad, roas: ad > 0 ? pt.revenue / ad : 0 };
-    });
-    return t;
-  }, [filteredBase, adSpendDaily, mode, selMonths, selYears, activeYear, startMonth]);
+  const trend = useMemo(
+    () => (range ? buildTrendRange(filteredBase, range.start, range.end) : { data: [], title: "", granularity: "day" }),
+    [filteredBase, range]
+  );
   const skuData = useMemo(() => computeSkuData(filtered), [filtered]);
   const channelData = useMemo(() => computeChannelData(filtered), [filtered]);
   const topCustomers = useMemo(() => computeTopCustomers(filtered), [filtered]);
   const customerMix = useMemo(() => computeCustomerMix(filtered), [filtered]);
   const delta = useMemo(
-    () => computeDelta(filteredBase, mode, selMonths, selYears, activeYear, startMonth),
-    [filteredBase, mode, selMonths, selYears, activeYear, startMonth]
+    () => (range ? computeDeltaRange(filteredBase, range.start, range.end) : null),
+    [filteredBase, range]
   );
   const d = (key) => (delta ? { pct: delta[key], label: delta.label } : null);
 
@@ -140,12 +110,12 @@ export default function Dashboard({ rows, adSpendDaily, theme, onToggleTheme, er
         onToggleTheme={onToggleTheme} onClearFilters={clearAllFilters} onRefresh={onRefresh}
       />
 
-      <CompareControl
-        mode={mode} selMonths={selMonths} selYears={selYears} startMonth={startMonth} activeYear={activeYear}
-        availableYears={availableYears}
-        onChangeMode={changeMode} onToggleMonth={toggleMonth} onToggleYear={toggleYear}
-        onSetStartMonth={setStartMonth} onChangeActiveYear={setActiveYear}
-      />
+      {range && (
+        <DateRangePicker
+          start={range.start} end={range.end} rows={rows}
+          onChange={(start, end) => setRange({ start, end })}
+        />
+      )}
 
       {/* KPI row 1 */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 12 }}>
@@ -191,6 +161,9 @@ export default function Dashboard({ rows, adSpendDaily, theme, onToggleTheme, er
         rows={filtered} activeSku={activeSku} activeChannel={activeChannel}
         onToggleSku={(s) => toggle(s, setActiveSku, activeSku)} onSetCell={handleHeatmapCell}
       />
+
+      {/* รายงานผลโฆษณา Meta (TTC Ad Account) — snapshot ข้อมูลจริง */}
+      <MetaAdsReport />
     </div>
   );
 }
