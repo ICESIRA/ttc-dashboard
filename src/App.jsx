@@ -1,12 +1,17 @@
-// ─────────────────────────────────────────────────────────────
+// ──────────────────────────────────────────────────────────────
 // App.jsx — root: โหลดธีม + ข้อมูล แล้วส่งให้ Dashboard
 // จัดการหน้า loading รอบแรก + หน้า error ถ้ายังไม่มีข้อมูลเลย
-// ─────────────────────────────────────────────────────────────
+//
+// ZOOM = ขยายทั้งหน้าเหมือนกดซูมเบราว์เซอร์ (1 = 100%, 1.5 = 150%)
+//   อยากปรับขนาดทั้ง dashboard แก้เลขตรง ZOOM ค่าเดียว
+// ──────────────────────────────────────────────────────────────
 
 import { useState } from "react";
 import { ThemeStyle } from "./config/theme.jsx";
 import { useSheetData } from "./data/useSheetData.js";
 import Dashboard from "./components/Dashboard.jsx";
+
+const ZOOM = 1.8; // 180% — ขยายทั้งหน้า (แก้เลขนี้ปรับขนาด: 1.5=150%, 2=200%)
 
 function Center({ children }) {
   return (
@@ -64,10 +69,12 @@ export default function App() {
   return (
     <>
       <ThemeStyle mode={theme} />
-      <Dashboard
-        rows={rows} adSpendDaily={adSpendDaily} theme={theme} onToggleTheme={toggleTheme}
-        error={error} lastUpdated={lastUpdated} onRefresh={refresh}
-      />
+      <div style={{ zoom: ZOOM }}>
+        <Dashboard
+          rows={rows} adSpendDaily={adSpendDaily} theme={theme} onToggleTheme={toggleTheme}
+          error={error} lastUpdated={lastUpdated} onRefresh={refresh}
+        />
+      </div>
     </>
   );
 }
