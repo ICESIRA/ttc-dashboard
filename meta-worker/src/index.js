@@ -228,7 +228,7 @@ export default {
       const adsetTreeByCampaign = {};
       for (const c of campWithSpend) {
         const tree = await graph(`${c.id}/adsets`, {
-          fields: "name,status,ads.limit(50){name,status,creative{thumbnail_url,image_url,object_story_spec,image_hash,asset_feed_spec}}",
+          fields: "name,status,ads.limit(50){name,status,creative{thumbnail_url,image_url,object_story_spec,image_hash,asset_feed_spec,video_id}}",
           limit: "50",
         }, token).catch(() => ({ data: [] }));
         adsetTreeByCampaign[c.id] = tree.data || [];
@@ -238,12 +238,14 @@ export default {
         cr = cr || {};
         const oss = cr.object_story_spec || {};
         const linkImg = oss.link_data && oss.link_data.picture;
-        const videoImg = oss.video_data && oss.video_data.image_url;
-        // asset_feed_spec (dynamic creative) มักมีรูปคมชัด
+        const videoData = oss.video_data || {};
+        const videoImg = videoData.image_url; // เฟรมภาพจากวิดีโอ
+        // asset_feed_spec (dynamic creative) — รูปหรือ thumbnail วิดีโอ
         const afs = cr.asset_feed_spec || {};
         const afsImg = afs.images && afs.images[0] && (afs.images[0].url || afs.images[0].permalink_url);
-        // image_url = รูปเต็ม, thumbnail_url = รูปย่อ
-        const full = cr.image_url || afsImg || linkImg || videoImg || cr.thumbnail_url || "";
+        const afsVid = afs.videos && afs.videos[0] && (afs.videos[0].thumbnail_url || afs.videos[0].url);
+        // ลำดับ: รูปเต็ม → asset feed → เฟรมวิดีโอ → link → thumbnail
+        const full = cr.image_url || afsImg || videoImg || afsVid || linkImg || cr.thumbnail_url || "";
         const thumb = cr.thumbnail_url || full || "";
         return { full, thumb };
       };
@@ -281,7 +283,8 @@ export default {
           adsets.push({
             id: as.id, name: as.name, status: as.status === "ACTIVE" ? "Active" : "Pause",
             spend: asSpend, results: asResults, costPerResult: asResults > 0 ? asSpend / asResults : 0,
-            lead: asLead, cpl: asLead > 0 ? asSpend / asLead : 0, reach: num(as0.reach), ads,
+            lead: asLead, cpl: asLead > 0 ? asSpend / asLead : 0, reach: num(as0.reach),
+            ads: ads.sort((a, b) => b.spend - a.spend),
           });
         }
 
