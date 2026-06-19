@@ -19,6 +19,13 @@ const DAILY_METRICS = [
   { id: "leadform", label: "Leadform", color: "#2f6bff" },
   { id: "reach", label: "Reach", color: "#0bb5c9" },
 ];
+// เมตริกที่เลือกได้สำหรับกราฟแท่ง/เส้น (รวมงบด้วย)
+const CHART_METRICS = [
+  { id: "messages", label: "ข้อความ", color: "#7c5cff" },
+  { id: "leadform", label: "Leadform", color: "#2f6bff" },
+  { id: "reach", label: "Reach", color: "#0bb5c9" },
+  { id: "spend", label: "งบที่ใช้", color: "#d99514" },
+];
 const BREAKDOWN_DIMS = [
   { id: "gender", label: "แบ่งตามเพศ" },
   { id: "age", label: "แบ่งตามอายุ" },
@@ -118,6 +125,7 @@ export default function MetaAdsReport() {
   const { data, loading, error } = useMetaData();
 
   const [dailyMetric, setDailyMetric] = useState("messages");
+  const [lineMetric, setLineMetric] = useState("spend");
   const [breakdownDim, setBreakdownDim] = useState("gender");
   const [ageMetric, setAgeMetric] = useState("messages");
 
@@ -163,7 +171,8 @@ export default function MetaAdsReport() {
 
   const { meta, kpi, daily, funnel, budgetBreakdown, ageGender, campaigns } = data;
 
-  const activeDaily = DAILY_METRICS.find((m) => m.id === dailyMetric);
+  const activeBar = CHART_METRICS.find((m) => m.id === dailyMetric) || CHART_METRICS[0];
+  const activeLine = CHART_METRICS.find((m) => m.id === lineMetric) || CHART_METRICS[3];
   const pieData = budgetBreakdown[breakdownDim];
   const ageData = ageGender[ageMetric];
 
@@ -201,14 +210,18 @@ export default function MetaAdsReport() {
       {/* 2. กราฟรายวัน + Funnel */}
       <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr", gap: 18 }}>
         <div style={cardStyle}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 10, marginBottom: 12 }}>
-            <div>
-              <div style={{ fontSize: 17, color: "var(--text-heading)", fontWeight: 700 }}>ผลลัพธ์ รายวัน</div>
-              <div style={{ fontSize: 13, color: "var(--text-faint)", marginTop: 2 }}>
-                เส้น = งบที่ใช้จริง · แท่ง = {activeDaily.label}ที่เลือก
+          <div style={{ marginBottom: 12 }}>
+            <div style={{ fontSize: 17, color: "var(--text-heading)", fontWeight: 700 }}>ผลลัพธ์ รายวัน</div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 16, marginTop: 10 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 12, color: "var(--text-faint)", fontWeight: 600 }}>แท่ง:</span>
+                <SegToggle options={CHART_METRICS} value={dailyMetric} onChange={setDailyMetric} />
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 12, color: "var(--text-faint)", fontWeight: 600 }}>เส้น:</span>
+                <SegToggle options={CHART_METRICS} value={lineMetric} onChange={setLineMetric} />
               </div>
             </div>
-            <SegToggle options={DAILY_METRICS} value={dailyMetric} onChange={setDailyMetric} />
           </div>
           <ResponsiveContainer width="100%" height={290}>
             <ComposedChart data={daily} margin={{ top: 16, right: 12, left: 4, bottom: 0 }}>
@@ -217,11 +230,18 @@ export default function MetaAdsReport() {
               <YAxis yAxisId="left" tick={{ fill: "var(--text-faint)", fontSize: 12 }} axisLine={false} tickLine={false} tickFormatter={fmt} width={52} />
               <YAxis yAxisId="right" orientation="right" tick={{ fill: "var(--text-faint)", fontSize: 12 }} axisLine={false} tickLine={false} tickFormatter={fmt} width={44} />
               <Tooltip {...tooltipProps}
-                formatter={(v, n) => (n === "spend" ? [`${fmtNum(v)} บาท`, "งบที่ใช้"] : [fmtNum(v), activeDaily.label])} />
+                formatter={(v, n) => {
+                  const m = CHART_METRICS.find((x) => x.id === n);
+                  const isMoney = n === "spend";
+                  return [isMoney ? `${fmtNum(v)} บาท` : fmtNum(v), m ? m.label : n];
+                }} />
               <Legend wrapperStyle={{ fontSize: 13 }}
-                formatter={(v) => (v === "spend" ? "งบที่ใช้ (บาท)" : activeDaily.label)} />
-              <Bar yAxisId="left" dataKey={dailyMetric} fill={activeDaily.color + "77"} radius={[3, 3, 0, 0]} maxBarSize={20} />
-              <Line yAxisId="right" type="monotone" dataKey="spend" stroke="#d99514" strokeWidth={2.5} dot={false} />
+                formatter={(v) => {
+                  const m = CHART_METRICS.find((x) => x.id === v);
+                  return m ? m.label : v;
+                }} />
+              <Bar yAxisId="left" dataKey={dailyMetric} fill={activeBar.color + "77"} radius={[3, 3, 0, 0]} maxBarSize={20} />
+              <Line yAxisId="right" type="monotone" dataKey={lineMetric} stroke={activeLine.color} strokeWidth={2.5} dot={false} />
             </ComposedChart>
           </ResponsiveContainer>
         </div>
