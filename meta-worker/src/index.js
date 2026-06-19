@@ -27,6 +27,17 @@ function prevMonthRange() {
   return { since: ymd(start), until: ymd(end) };
 }
 
+// ช่วงก่อนหน้าที่ยาวเท่ากับช่วงที่เลือก (ติดกันพอดี) — ใช้เทียบ delta กับช่วง custom
+function prevPeriodRange(sinceStr, untilStr) {
+  const s = new Date(sinceStr + "T00:00:00");
+  const u = new Date(untilStr + "T00:00:00");
+  const dayMs = 86400000;
+  const lenDays = Math.round((u - s) / dayMs) + 1; // จำนวนวันในช่วง (รวมปลาย)
+  const prevEnd = new Date(s.getTime() - dayMs);
+  const prevStart = new Date(prevEnd.getTime() - (lenDays - 1) * dayMs);
+  return { since: ymd(prevStart), until: ymd(prevEnd) };
+}
+
 // % เปลี่ยนแปลง (cur เทียบ prev)
 function pct(cur, prev) {
   if (!prev || prev === 0) return 0;
@@ -72,7 +83,14 @@ export default {
       if (!account) return json({ error: "ยังไม่ได้ตั้ง AD_ACCOUNT" }, 500);
 
       const { since, until } = monthRange();
-      const timeRange = JSON.stringify({ since, until });
+      // ── รับช่วงวันที่จาก URL: ?since=YYYY-MM-DD&until=YYYY-MM-DD (ไม่ส่ง = เดือนปัจจุบัน) ──
+      const url = new URL(request.url);
+      const qSince = url.searchParams.get("since");
+      const qUntil = url.searchParams.get("until");
+      const isYmd = (s) => /^\d{4}-\d{2}-\d{2}$/.test(s || "");
+      const useSince = isYmd(qSince) ? qSince : since;
+      const useUntil = isYmd(qUntil) ? qUntil : until;
+      const timeRange = JSON.stringify({ since: useSince, until: useUntil });
 
       // ══ 1) ภาพรวมบัญชี (KPI + funnel) ══
       const acc = await graph(`${account}/insights`, {
@@ -96,8 +114,8 @@ export default {
       const ctr = num(a0.ctr);
       const costPerResult = results > 0 ? spend / results : 0;
 
-      // ══ 1b) เดือนก่อน (ช่วงเดียวกัน) ไว้เทียบ delta ══
-      const prev = prevMonthRange();
+      // ══ 1b) ช่วงก่อนหน้า (ยาวเท่ากับช่วงที่เลือก) ไว้เทียบ delta ══
+      const prev = prevPeriodRange(useSince, useUntil);
       let dSpend = 0, dCostPerResult = 0, dResults = 0, dReach = 0;
       try {
         const accPrev = await graph(`${account}/insights`, {
@@ -228,7 +246,7 @@ export default {
       const adsetTreeByCampaign = {};
       for (const c of campWithSpend) {
         const tree = await graph(`${c.id}/adsets`, {
-          fields: "name,status,ads.limit(50){name,status,creative{thumbnail_url,image_url,object_story_spec,image_hash,asset_feed_spec,video_id}}",
+          fields: "name,status,ads.limit(50){name,status,creative{id,name,thumbnail_url,image_url,object_story_spec,image_hash,asset_feed_spec,video_id,effective_object_story_id,instagram_permalink_url}}",
           limit: "50",
         }, token).catch(() => ({ data: [] }));
         adsetTreeByCampaign[c.id] = tree.data || [];
@@ -238,14 +256,17 @@ export default {
         cr = cr || {};
         const oss = cr.object_story_spec || {};
         const linkImg = oss.link_data && oss.link_data.picture;
+        const photoImg = oss.photo_data && oss.photo_data.url;
         const videoData = oss.video_data || {};
         const videoImg = videoData.image_url; // เฟรมภาพจากวิดีโอ
-        // asset_feed_spec (dynamic creative) — รูปหรือ thumbnail วิดีโอ
         const afs = cr.asset_feed_spec || {};
         const afsImg = afs.images && afs.images[0] && (afs.images[0].url || afs.images[0].permalink_url);
         const afsVid = afs.videos && afs.videos[0] && (afs.videos[0].thumbnail_url || afs.videos[0].url);
-        // ลำดับ: รูปเต็ม → asset feed → เฟรมวิดีโอ → link → thumbnail
-        const full = cr.image_url || afsImg || videoImg || afsVid || linkImg || cr.thumbnail_url || "";
+        // thumbnail แบบขยาย — ลบ param ย่อรูป p64x64 ออกเพื่อให้ได้ภาพใหญ่ขึ้น
+        let bigThumb = cr.thumbnail_url || "";
+        if (bigThumb) bigThumb = bigThumb.replace(/([?&])(stp|_nc_sid)=[^&]*/g, "$1").replace(/[?&]$/, "");
+        // รูปเต็มเรียงตามความน่าเชื่อถือ
+        const full = cr.image_url || photoImg || afsImg || videoImg || afsVid || linkImg || bigThumb || cr.thumbnail_url || "";
         const thumb = cr.thumbnail_url || full || "";
         return { full, thumb };
       };
@@ -284,7 +305,7 @@ export default {
             id: as.id, name: as.name, status: as.status === "ACTIVE" ? "Active" : "Pause",
             spend: asSpend, results: asResults, costPerResult: asResults > 0 ? asSpend / asResults : 0,
             lead: asLead, cpl: asLead > 0 ? asSpend / asLead : 0, reach: num(as0.reach),
-            ads: ads.sort((a, b) => b.spend - a.spend),
+            ads: ads.filter((a) => a.spend > 0).sort((a, b) => b.spend - a.spend),
           });
         }
 
@@ -317,7 +338,7 @@ export default {
       const payload = {
         meta: {
           account: "TTC AD Performance",
-          dateStart: since, dateStop: until,
+          dateStart: useSince, dateStop: useUntil,
           currency: "THB", source: "live",
           pulledAt: ymd(new Date()),
         },

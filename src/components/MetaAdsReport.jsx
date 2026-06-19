@@ -120,9 +120,9 @@ function StatusBadge({ status }) {
   );
 }
 
-export default function MetaAdsReport() {
+export default function MetaAdsReport({ since, until }) {
   // ดึงข้อมูลจริงจาก Cloudflare Worker (ใช้ข้อมูล Meta จริงเท่านั้น)
-  const { data, loading, error } = useMetaData();
+  const { data, loading, error } = useMetaData(since, until);
 
   const [dailyMetric, setDailyMetric] = useState("messages");
   const [lineMetric, setLineMetric] = useState("spend");

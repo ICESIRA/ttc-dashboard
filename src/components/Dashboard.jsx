@@ -12,7 +12,7 @@ import {
   computeTopCustomers, computeCustomerMix, computeTopChannels,
 } from "../lib/analytics.js";
 import {
-  presetRange, filterByRange, buildTrendRange, computeDeltaRange, adSpendForRange,
+  presetRange, filterByRange, buildTrendRange, computeDeltaRange, adSpendForRange, dateToISO, latestDataDate,
 } from "../lib/daterange.js";
 import { fmtB, fmtNum, fmtDec, fmtParts, sum } from "../lib/format.js";
 
@@ -30,9 +30,6 @@ import MetaAdsReport from "./MetaAdsReport.jsx";
 import { useMetaData } from "../data/useMetaData.js";
 
 export default function Dashboard({ rows, adSpendDaily, theme, onToggleTheme, error, lastUpdated, onRefresh }) {
-  // ดึงค่าแอด Meta จริง (ไว้โชว์ในการ์ด Ad Spend เสริมจาก sheet)
-  const { data: metaData } = useMetaData();
-  const metaSpend = metaData && metaData.kpi ? metaData.kpi.spend : 0;
   // ─── filter state (SKU / channel / customer) ───
   const [activeSku, setActiveSku] = useState(null);
   const [activeChannel, setActiveChannel] = useState(null);
@@ -44,6 +41,12 @@ export default function Dashboard({ rows, adSpendDaily, theme, onToggleTheme, er
   const [range, setRange] = useState(null); // { start, end } (Date)
   const [compareRange, setCompareRange] = useState(null); // { start, end } ช่วงเทียบกำหนดเอง (null = อัตโนมัติ)
   const [didInit, setDidInit] = useState(false);
+
+  // ดึงค่าแอด Meta จริง — อิงช่วงวันที่ที่เลือก (ส่ง since/until ให้ Worker)
+  const metaSince = range ? dateToISO(range.start) : null;
+  const metaUntil = range ? dateToISO(range.end) : null;
+  const { data: metaData } = useMetaData(metaSince, metaUntil);
+  const metaSpend = metaData && metaData.kpi ? metaData.kpi.spend : 0;
 
   // ตั้งค่าเริ่มต้นครั้งแรกที่ข้อมูลมา — "เดือนนี้" (อิงวันนี้จริง)
   useEffect(() => {
@@ -148,6 +151,13 @@ export default function Dashboard({ rows, adSpendDaily, theme, onToggleTheme, er
         />
       )}
 
+      {/* แจ้งวันที่ข้อมูลล่าสุดจากตาราง */}
+      {rows.length > 0 && (
+        <div style={{ fontSize: 13, color: "var(--text-faint)", marginTop: -8, marginBottom: 16 }}>
+          📊 ข้อมูลจากตารางอัปเดตล่าสุดถึงวันที่ {dateToISO(latestDataDate(rows))}
+        </div>
+      )}
+
       {/* KPI row 1 */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 12 }}>
         <KPICard label="ยอดขายเสนอ" value={fmtParts(kpi.quoted, "บาท")} sub="Pipeline / Quote ทั้งหมด" color="var(--text-muted)" delta={d("quoted")} />
@@ -194,7 +204,7 @@ export default function Dashboard({ rows, adSpendDaily, theme, onToggleTheme, er
       />
 
       {/* รายงานผลโฆษณา Meta (TTC Ad Account) */}
-      <MetaAdsReport />
+      <MetaAdsReport since={metaSince} until={metaUntil} />
     </div>
   );
 }
