@@ -8,8 +8,18 @@ import { ACCENT, monthIndex } from "../../config/constants.js";
 import { fmtNum } from "../../lib/format.js";
 import { cardStyle } from "../ui.js";
 
-const weekRangeLabel = (w) =>
-  ["Week 1-7", "Week 8-14", "Week 15-21", "Week 22-28", "Week 29-31"][w - 1] || `Week ${w}`;
+// label สัปดาห์ — รับจำนวนวันสุดท้ายของเดือนเพื่อระบุช่วงให้ถูก
+const weekRangeLabel = (w, daysInMonth) => {
+  const ranges = [
+    [1, 7], [8, 14], [15, 21], [22, 28], [29, daysInMonth || 31],
+  ];
+  const r = ranges[w - 1];
+  if (!r) return `Week ${w}`;
+  // ถ้า start เกินจำนวนวันในเดือน (สัปดาห์นี้ไม่มีจริง) — ไม่ควรเกิดเพราะ filter แล้ว
+  return `Week ${r[0]}-${r[1]}`;
+};
+// จำนวนวันในเดือน (mi = 0-11)
+const daysInMonthOf = (year, mi) => new Date(year, mi + 1, 0).getDate();
 const weekOf = (day) => {
   if (day <= 7) return 1;
   if (day <= 14) return 2;
@@ -63,7 +73,7 @@ export default function OfferVsSalesPanel({ rows }) {
       weeks[w][sku] = (weeks[w][sku] || 0) + (r[activeField] || 0);
     }
     const weekList = Object.keys(weeks).map(Number).sort((a, b) => a - b);
-    return { year, month, weeks, weekList, skus: [...skuSet] };
+    return { year, month, weeks, weekList, skus: [...skuSet], daysInMonth: daysInMonthOf(year, mi) };
   }, [rows, activeKey, activeField, monthOptions]);
 
   return (
@@ -135,7 +145,7 @@ export default function OfferVsSalesPanel({ rows }) {
                   fontSize: 13, fontWeight: 700, color: ACCENT, textAlign: "center",
                   background: "var(--bg-chip)", borderRadius: 6, padding: "6px 0", marginBottom: 8,
                 }}>
-                  {weekRangeLabel(w)}
+                  {weekRangeLabel(w, monthData.daysInMonth)}
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                   {monthData.skus.map((sku) => (
