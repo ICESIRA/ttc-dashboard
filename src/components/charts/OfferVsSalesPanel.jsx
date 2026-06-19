@@ -39,7 +39,7 @@ export default function OfferVsSalesPanel({ rows }) {
       const key = r.year * 100 + mi;
       if (!monthKeys[key]) monthKeys[key] = { year: r.year, mi, month: r.month };
     }
-    const sortedKeys = Object.keys(monthKeys).map(Number).sort((a, b) => a - b).slice(-3);
+    const sortedKeys = Object.keys(monthKeys).map(Number).sort((a, b) => a - b).slice(-2);
 
     return sortedKeys.map((key) => {
       const { year, mi, month } = monthKeys[key];
@@ -65,7 +65,7 @@ export default function OfferVsSalesPanel({ rows }) {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 10, marginBottom: 14 }}>
         <div>
           <div style={{ fontSize: 17, color: "var(--text-heading)", fontWeight: 700 }}>
-            ยอดเสนอ vs ยอดขาย — รายสัปดาห์ (3 เดือนล่าสุด)
+            ยอดเสนอ vs ยอดขาย — รายสัปดาห์ (2 เดือนล่าสุด)
           </div>
           <div style={{ fontSize: 13, color: "var(--text-faint)", marginTop: 2 }}>
             แยกตามกลุ่มสินค้า · กดปุ่มสลับมุมมอง
