@@ -12,7 +12,7 @@ import {
 import { ACCENT } from "../config/constants.js";
 import { fmt, fmtNum, fmtDec } from "../lib/format.js";
 import { tooltipProps, cardStyle } from "./ui.js";
-import { META_SNAPSHOT } from "../data/metaAdsSnapshot.js";
+import { useMetaData } from "../data/useMetaData.js";
 
 const DAILY_METRICS = [
   { id: "messages", label: "ข้อความ", color: "#7c5cff" },
@@ -113,8 +113,9 @@ function StatusBadge({ status }) {
   );
 }
 
-export default function MetaAdsReport({ data = META_SNAPSHOT }) {
-  const { meta, kpi, daily, funnel, budgetBreakdown, ageGender, campaigns } = data;
+export default function MetaAdsReport() {
+  // ดึงข้อมูลจริงจาก Cloudflare Worker (ใช้ข้อมูล Meta จริงเท่านั้น)
+  const { data, loading, error } = useMetaData();
 
   const [dailyMetric, setDailyMetric] = useState("messages");
   const [breakdownDim, setBreakdownDim] = useState("gender");
@@ -127,6 +128,40 @@ export default function MetaAdsReport({ data = META_SNAPSHOT }) {
 
   const toggleCampaign = (id) => setOpenCampaigns((s) => ({ ...s, [id]: !s[id] }));
   const toggleAdset = (id) => setOpenAdsets((s) => ({ ...s, [id]: !s[id] }));
+
+  // ── หน้า loading ระหว่างดึง Meta ──
+  if (loading) {
+    return (
+      <div style={{ ...cardStyle, marginTop: 30, padding: "60px 20px", textAlign: "center" }}>
+        <div style={{
+          width: 40, height: 40, margin: "0 auto 16px", borderRadius: "50%",
+          border: "4px solid var(--border-default)", borderTopColor: "#2f6bff",
+          animation: "metaspin 1s linear infinite",
+        }} />
+        <div style={{ fontSize: 16, fontWeight: 600, color: "var(--text-heading)" }}>กำลังดึงข้อมูล Meta Ads...</div>
+        <div style={{ fontSize: 13, color: "var(--text-faint)", marginTop: 4 }}>เชื่อมต่อ Meta แบบเรียลไทม์</div>
+        <style>{`@keyframes metaspin { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
+  }
+
+  // ── ดึงข้อมูลไม่ได้ (ไม่ fallback ไปข้อมูลตัวอย่าง) ──
+  if (error || !data) {
+    return (
+      <div style={{ ...cardStyle, marginTop: 30, padding: "48px 20px", textAlign: "center" }}>
+        <div style={{ fontSize: 36, marginBottom: 10 }}>⚠️</div>
+        <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text-heading)" }}>ดึงข้อมูล Meta ไม่ได้</div>
+        <div style={{ fontSize: 13, color: "var(--text-faint)", marginTop: 6, maxWidth: 460, marginLeft: "auto", marginRight: "auto" }}>
+          {error || "ไม่พบข้อมูลจาก Meta"}
+        </div>
+        <div style={{ fontSize: 12, color: "var(--text-faint)", marginTop: 10 }}>
+          ลองรีเฟรชหน้าใหม่ หรือตรวจสอบการเชื่อมต่อ Meta
+        </div>
+      </div>
+    );
+  }
+
+  const { meta, kpi, daily, funnel, budgetBreakdown, ageGender, campaigns } = data;
 
   const activeDaily = DAILY_METRICS.find((m) => m.id === dailyMetric);
   const pieData = budgetBreakdown[breakdownDim];
@@ -168,7 +203,7 @@ export default function MetaAdsReport({ data = META_SNAPSHOT }) {
         <div style={cardStyle}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 10, marginBottom: 12 }}>
             <div>
-              <div style={{ fontSize: 17, color: "var(--text-heading)", fontWeight: 700 }}>งบที่ใช้ & ผลลัพธ์ รายวัน</div>
+              <div style={{ fontSize: 17, color: "var(--text-heading)", fontWeight: 700 }}>ผลลัพธ์ รายวัน</div>
               <div style={{ fontSize: 13, color: "var(--text-faint)", marginTop: 2 }}>
                 เส้น = งบที่ใช้จริง · แท่ง = {activeDaily.label}ที่เลือก
               </div>
@@ -290,7 +325,14 @@ export default function MetaAdsReport({ data = META_SNAPSHOT }) {
                     </tr>
 
                     {/* แถว ad set (กลุ่มเป้าหมาย) */}
-                    {cOpen && c.adsets.map((as) => {
+                    {cOpen && (!c.adsets || c.adsets.length === 0) && (
+                      <tr style={{ borderTop: "1px solid var(--border-subtle)", background: "var(--bg-page)" }}>
+                        <td colSpan={8} style={{ ...td("left"), paddingLeft: 38, color: "var(--text-faint)", fontStyle: "italic" }}>
+                          ไม่มีกลุ่มเป้าหมายที่มีข้อมูลในช่วงนี้
+                        </td>
+                      </tr>
+                    )}
+                    {cOpen && (c.adsets || []).map((as) => {
                       const asOpen = !!openAdsets[as.id];
                       return (
                         <FragmentRows key={as.id}>
@@ -310,11 +352,11 @@ export default function MetaAdsReport({ data = META_SNAPSHOT }) {
                           </tr>
 
                           {/* แถว ad (คอนเทนต์ + รูป) */}
-                          {asOpen && as.ads.map((ad) => (
+                          {asOpen && (as.ads || []).map((ad) => (
                             <tr key={ad.id} style={{ borderTop: "1px solid var(--border-subtle)", background: "var(--bg-page)" }}>
                               <td style={{ ...td("left"), paddingLeft: 64 }}>
                                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                                  <img src={ad.imageUrl} alt={ad.name} onClick={() => setLightbox({ url: ad.imageUrl, name: ad.name })}
+                                  <img src={ad.imageUrl} alt={ad.name} onClick={() => setLightbox({ url: ad.fullImageUrl || ad.imageUrl, name: ad.name })}
                                     style={{ width: 46, height: 46, borderRadius: 8, objectFit: "cover", cursor: "zoom-in", border: "1px solid var(--border-subtle)", flexShrink: 0 }} />
                                   <div>
                                     <div style={{ color: "var(--text-body)", fontWeight: 500 }}>{ad.name}</div>
@@ -350,7 +392,7 @@ export default function MetaAdsReport({ data = META_SNAPSHOT }) {
             display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16, padding: 24, cursor: "zoom-out",
           }}>
           <img src={lightbox.url} alt={lightbox.name}
-            style={{ maxWidth: "90vw", maxHeight: "78vh", borderRadius: 14, boxShadow: "0 20px 60px rgba(0,0,0,0.5)" }} />
+            style={{ maxWidth: "96vw", maxHeight: "88vh", minWidth: "min(90vw, 520px)", objectFit: "contain", borderRadius: 14, boxShadow: "0 20px 60px rgba(0,0,0,0.5)" }} />
           <div style={{ color: "#fff", fontSize: 16, fontWeight: 600, fontFamily: "'IBM Plex Sans Thai', sans-serif" }}>{lightbox.name}</div>
           <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 13 }}>คลิกที่ใดก็ได้เพื่อปิด</div>
         </div>

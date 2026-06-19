@@ -1,0 +1,21 @@
+/**
+ * Wrangler config — meta-worker
+ * AD_ACCOUNT ใส่ตรง vars ได้ (ไม่ใช่ความลับ)
+ * META_TOKEN เป็น secret → ใส่ผ่าน: wrangler secret put META_TOKEN
+ */
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "meta-worker",
+	"main": "src/index.js",
+	"compatibility_date": "2026-06-18",
+	"observability": {
+		"enabled": true
+	},
+	"upload_source_maps": true,
+	"compatibility_flags": [
+		"nodejs_compat"
+	],
+	"vars": {
+		"AD_ACCOUNT": "act_359318456016031"
+	}
+}
