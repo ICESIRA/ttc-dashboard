@@ -390,8 +390,12 @@ export default function MetaAdsReport() {
                             <tr key={ad.id} style={{ borderTop: "1px solid var(--border-subtle)", background: "var(--bg-page)" }}>
                               <td style={{ ...td("left"), paddingLeft: 64 }}>
                                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                                  <img src={ad.imageUrl} alt={ad.name} onClick={() => setLightbox({ url: ad.fullImageUrl || ad.imageUrl, name: ad.name })}
-                                    style={{ width: 46, height: 46, borderRadius: 8, objectFit: "cover", cursor: "zoom-in", border: "1px solid var(--border-subtle)", flexShrink: 0 }} />
+                                  {ad.imageUrl ? (
+                                    <img src={ad.imageUrl} alt={ad.name} onClick={() => setLightbox({ url: ad.fullImageUrl || ad.imageUrl, name: ad.name })}
+                                      style={{ width: 46, height: 46, borderRadius: 8, objectFit: "cover", cursor: "zoom-in", border: "1px solid var(--border-subtle)", flexShrink: 0 }} />
+                                  ) : (
+                                    <div style={{ width: 46, height: 46, borderRadius: 8, border: "1px solid var(--border-subtle)", background: "var(--bg-chip)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, color: "var(--text-faint)", flexShrink: 0 }}>🖼</div>
+                                  )}
                                   <div>
                                     <div style={{ color: "var(--text-body)", fontWeight: 500 }}>{ad.name}</div>
                                     <div style={{ fontSize: 12, color: "var(--text-faint)" }}>{ad.format} · CTR {fmtDec(ad.ctr, 1)}%</div>
@@ -400,11 +404,11 @@ export default function MetaAdsReport() {
                               </td>
                               <td style={mono("right")}>{fmtNum(ad.spend)} บาท</td>
                               <td style={mono("right")}>{fmtNum(ad.results)}</td>
-                              <td style={mono("right")}>—</td>
+                              <td style={mono("right")}>{ad.costPerResult > 0 ? `${fmtDec(ad.costPerResult, 2)} บาท` : "—"}</td>
                               <td style={mono("right")}>{fmtNum(ad.lead)}</td>
                               <td style={mono("right")}>—</td>
                               <td style={mono("right")}>{fmtNum(ad.reach)}</td>
-                              <td style={td("center")}>—</td>
+                              <td style={td("center")}>{ad.status ? <StatusBadge status={ad.status} /> : "—"}</td>
                             </tr>
                           ))}
                         </FragmentRows>

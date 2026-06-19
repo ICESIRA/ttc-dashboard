@@ -228,7 +228,7 @@ export default {
       const adsetTreeByCampaign = {};
       for (const c of campWithSpend) {
         const tree = await graph(`${c.id}/adsets`, {
-          fields: "name,status,ads.limit(50){name,status,creative{thumbnail_url,image_url,object_story_spec}}",
+          fields: "name,status,ads.limit(50){name,status,creative{thumbnail_url,image_url,object_story_spec,image_hash,asset_feed_spec}}",
           limit: "50",
         }, token).catch(() => ({ data: [] }));
         adsetTreeByCampaign[c.id] = tree.data || [];
@@ -239,7 +239,11 @@ export default {
         const oss = cr.object_story_spec || {};
         const linkImg = oss.link_data && oss.link_data.picture;
         const videoImg = oss.video_data && oss.video_data.image_url;
-        const full = cr.image_url || linkImg || videoImg || cr.thumbnail_url || "";
+        // asset_feed_spec (dynamic creative) มักมีรูปคมชัด
+        const afs = cr.asset_feed_spec || {};
+        const afsImg = afs.images && afs.images[0] && (afs.images[0].url || afs.images[0].permalink_url);
+        // image_url = รูปเต็ม, thumbnail_url = รูปย่อ
+        const full = cr.image_url || afsImg || linkImg || videoImg || cr.thumbnail_url || "";
         const thumb = cr.thumbnail_url || full || "";
         return { full, thumb };
       };
@@ -267,7 +271,9 @@ export default {
             const { full, thumb } = pickImg(ad.creative);
             ads.push({
               id: ad.id, name: ad.name, format: "Ad",
+              status: ad.status === "ACTIVE" ? "Active" : "Pause",
               spend: num(ad0.spend), results: resultsOf(ad0), lead: getAction(ad0.actions, "lead"),
+              costPerResult: resultsOf(ad0) > 0 ? num(ad0.spend) / resultsOf(ad0) : 0,
               reach: num(ad0.reach), ctr: num(ad0.ctr), imageUrl: thumb, fullImageUrl: full,
             });
           }
