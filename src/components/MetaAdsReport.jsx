@@ -171,10 +171,24 @@ export default function MetaAdsReport() {
 
   const { meta, kpi, daily, funnel, budgetBreakdown, ageGender, campaigns } = data;
 
-  const activeBar = CHART_METRICS.find((m) => m.id === dailyMetric) || CHART_METRICS[0];
-  const activeLine = CHART_METRICS.find((m) => m.id === lineMetric) || CHART_METRICS[3];
+  // ── ซ่อน Leadform อัตโนมัติถ้าไม่มีข้อมูลเลย ──
+  const hasLeadform =
+    (daily || []).some((d) => (d.leadform || 0) > 0) ||
+    ((ageGender && ageGender.leadform) || []).some((r) => (r.female || 0) + (r.male || 0) > 0);
+
+  const dropLead = (arr) => (hasLeadform ? arr : arr.filter((m) => m.id !== "leadform"));
+  const chartMetrics = dropLead(CHART_METRICS);   // ปุ่มกราฟรายวัน
+  const dailyMetricsFiltered = dropLead(DAILY_METRICS); // ปุ่มกราฟ age×gender
+
+  // ถ้าเมตริกที่เลือกอยู่คือ leadform แต่ถูกซ่อน → เด้งกลับเป็น messages
+  const safeBarId = (!hasLeadform && dailyMetric === "leadform") ? "messages" : dailyMetric;
+  const safeLineId = (!hasLeadform && lineMetric === "leadform") ? "spend" : lineMetric;
+  const safeAgeId = (!hasLeadform && ageMetric === "leadform") ? "messages" : ageMetric;
+
+  const activeBar = CHART_METRICS.find((m) => m.id === safeBarId) || CHART_METRICS[0];
+  const activeLine = CHART_METRICS.find((m) => m.id === safeLineId) || CHART_METRICS[3];
   const pieData = budgetBreakdown[breakdownDim];
-  const ageData = ageGender[ageMetric];
+  const ageData = ageGender[safeAgeId];
 
   return (
     <div style={{ marginTop: 30, display: "flex", flexDirection: "column", gap: 18 }}>
@@ -215,11 +229,11 @@ export default function MetaAdsReport() {
             <div style={{ display: "flex", flexWrap: "wrap", gap: 16, marginTop: 10 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <span style={{ fontSize: 12, color: "var(--text-faint)", fontWeight: 600 }}>แท่ง:</span>
-                <SegToggle options={CHART_METRICS} value={dailyMetric} onChange={setDailyMetric} />
+                <SegToggle options={chartMetrics} value={safeBarId} onChange={setDailyMetric} />
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <span style={{ fontSize: 12, color: "var(--text-faint)", fontWeight: 600 }}>เส้น:</span>
-                <SegToggle options={CHART_METRICS} value={lineMetric} onChange={setLineMetric} />
+                <SegToggle options={chartMetrics} value={safeLineId} onChange={setLineMetric} />
               </div>
             </div>
           </div>
@@ -240,8 +254,8 @@ export default function MetaAdsReport() {
                   const m = CHART_METRICS.find((x) => x.id === v);
                   return m ? m.label : v;
                 }} />
-              <Bar yAxisId="left" dataKey={dailyMetric} fill={activeBar.color + "77"} radius={[3, 3, 0, 0]} maxBarSize={20} />
-              <Line yAxisId="right" type="monotone" dataKey={lineMetric} stroke={activeLine.color} strokeWidth={2.5} dot={false} />
+              <Bar yAxisId="left" dataKey={safeBarId} fill={activeBar.color + "77"} radius={[3, 3, 0, 0]} maxBarSize={20} />
+              <Line yAxisId="right" type="monotone" dataKey={safeLineId} stroke={activeLine.color} strokeWidth={2.5} dot={false} />
             </ComposedChart>
           </ResponsiveContainer>
         </div>
@@ -287,7 +301,7 @@ export default function MetaAdsReport() {
               <div style={{ fontSize: 17, color: "var(--text-heading)", fontWeight: 700 }}>ผลลัพธ์ตามกลุ่มอายุ & เพศ</div>
               <div style={{ fontSize: 13, color: "var(--text-faint)", marginTop: 2 }}>กลุ่มไหนได้ผลที่สุด</div>
             </div>
-            <SegToggle options={DAILY_METRICS} value={ageMetric} onChange={setAgeMetric} />
+            <SegToggle options={dailyMetricsFiltered} value={safeAgeId} onChange={setAgeMetric} />
           </div>
           <ResponsiveContainer width="100%" height={250}>
             <BarChart data={ageData} margin={{ top: 16, right: 12, left: 4, bottom: 0 }}>
