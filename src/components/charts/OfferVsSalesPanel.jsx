@@ -1,72 +1,118 @@
-// ─────────────────────────────────────────────────────────────
-// OfferVsSalesPanel.jsx — เทียบ "ยอดเสนอ vs ยอดขาย(ปิดได้)" (ข้อ 7)
-// บน: เส้น 2 เส้นซ้อน (เสนอ/ปิดได้) + Close Rate
-// ล่าง: bar เทียบ 2 แท่งต่อจุด (เสนอ/ปิดได้)
-// ─────────────────────────────────────────────────────────────
+// ────────────────────────────────────────────────────────────────
+// OfferVsSalesPanel.jsx — ตารางยอดเสนอ vs ยอดขาย
+//   แสดง 3 เดือนล่าสุด แยกเป็นรายสัปดาห์ของแต่ละเดือน
+//   สัปดาห์แบ่งตามวันที่: 1-7, 8-14, 15-21, 22-28, 29-สิ้นเดือน
+// ────────────────────────────────────────────────────────────────
+import { useMemo } from "react";
+import { ACCENT, monthIndex } from "../../config/constants.js";
+import { fmtNum, fmtDec } from "../../lib/format.js";
+import { cardStyle } from "../ui.js";
 
-import {
-  ComposedChart, Line, Bar, BarChart, XAxis, YAxis, Tooltip,
-  ResponsiveContainer, CartesianGrid, Legend, LabelList,
-} from "recharts";
-import { ACCENT } from "../../config/constants.js";
-import { fmt, fmtDec } from "../../lib/format.js";
-import { tooltipProps, cardStyle } from "../ui.js";
+// ชื่อสัปดาห์จากวันที่
+const weekOf = (day) => {
+  if (day <= 7) return 1;
+  if (day <= 14) return 2;
+  if (day <= 21) return 3;
+  if (day <= 28) return 4;
+  return 5;
+};
 
-const C_QUOTED = "#94a3b8"; // ยอดเสนอ (เทา)
-const C_SALES = ACCENT;     // ยอดปิดได้ (ฟ้า)
+export default function OfferVsSalesPanel({ rows }) {
+  const months = useMemo(() => {
+    if (!rows || rows.length === 0) return [];
 
-export default function OfferVsSalesPanel({ trend }) {
-  const { data, title } = trend;
-  const totalQuoted = data.reduce((a, d) => a + d.quoted, 0);
-  const totalSales = data.reduce((a, d) => a + d.revenue, 0);
-  const overallClose = totalQuoted > 0 ? (totalSales / totalQuoted) * 100 : 0;
+    // หา 3 เดือนล่าสุดจากข้อมูล (เรียงตาม year*100+monthIndex)
+    const monthKeys = {};
+    for (const r of rows) {
+      const mi = monthIndex(r.month);
+      if (mi < 0) continue;
+      const key = r.year * 100 + mi;
+      if (!monthKeys[key]) monthKeys[key] = { year: r.year, mi, month: r.month };
+    }
+    const sortedKeys = Object.keys(monthKeys).map(Number).sort((a, b) => b - a).slice(0, 3);
+
+    return sortedKeys.map((key) => {
+      const { year, mi, month } = monthKeys[key];
+      // รวมยอดของแต่ละสัปดาห์
+      const weeks = {};
+      for (const r of rows) {
+        if (r.year !== year || monthIndex(r.month) !== mi) continue;
+        const w = weekOf(r.day && r.day >= 1 ? r.day : 1);
+        if (!weeks[w]) weeks[w] = { quoted: 0, revenue: 0 };
+        weeks[w].quoted += r.quotedRevenue || 0;
+        weeks[w].revenue += r.revenue || 0;
+      }
+      const weekRows = Object.keys(weeks).map(Number).sort((a, b) => a - b).map((w) => ({
+        week: w,
+        quoted: weeks[w].quoted,
+        revenue: weeks[w].revenue,
+        closeRate: weeks[w].quoted > 0 ? (weeks[w].revenue / weeks[w].quoted) * 100 : 0,
+      }));
+      const totQuoted = weekRows.reduce((a, r) => a + r.quoted, 0);
+      const totRevenue = weekRows.reduce((a, r) => a + r.revenue, 0);
+      return {
+        year, month,
+        weeks: weekRows,
+        totQuoted, totRevenue,
+        totClose: totQuoted > 0 ? (totRevenue / totQuoted) * 100 : 0,
+      };
+    });
+  }, [rows]);
 
   return (
-    <div style={{ ...cardStyle, display: "flex", flexDirection: "column", gap: 8 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: 8 }}>
-        <div>
-          <div style={{ fontSize: 16, color: "var(--text-dim)", fontWeight: 600 }}>ยอดเสนอ vs ยอดขาย · {title}</div>
-          <div style={{ fontSize: 13, color: "var(--text-faint)" }}>เส้นบน = เทรนซ้อน · แท่งล่าง = เทียบรายช่วง</div>
+    <div style={cardStyle}>
+      <div style={{ marginBottom: 4 }}>
+        <div style={{ fontSize: 17, color: "var(--text-heading)", fontWeight: 700 }}>
+          ยอดเสนอ vs ยอดขาย — รายสัปดาห์ (3 เดือนล่าสุด)
         </div>
-        <div style={{ textAlign: "right" }}>
-          <div style={{ fontSize: 13, color: "var(--text-faint)" }}>อัตราปิดรวม (Close Rate)</div>
-          <div style={{ fontSize: 22, fontWeight: 700, color: overallClose > 50 ? "#10b981" : "#f59e0b", fontFamily: "'IBM Plex Mono', monospace" }}>
-            {fmtDec(overallClose, 1)}%
-          </div>
+        <div style={{ fontSize: 13, color: "var(--text-faint)", marginTop: 2 }}>
+          แยกตามเดือน · แต่ละแถวคือสัปดาห์ของเดือนนั้น
         </div>
       </div>
 
-      {/* เทรนซ้อน */}
-      <ResponsiveContainer width="100%" height={240}>
-        <ComposedChart data={data} margin={{ top: 24, right: 16, left: 8, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" vertical={false} />
-          <XAxis dataKey="label" tick={{ fill: "var(--text-dim)", fontSize: 13 }} axisLine={false} tickLine={false} />
-          <YAxis tick={{ fill: "var(--text-faint)", fontSize: 12 }} axisLine={false} tickLine={false} tickFormatter={fmt} width={64} />
-          <Tooltip {...tooltipProps}
-            formatter={(v, n) => [`${fmt(v)} บาท`, n === "quoted" ? "ยอดเสนอ" : n === "revenue" ? "ยอดขาย(ปิดได้)" : n]} />
-          <Legend formatter={(v) => (v === "quoted" ? "ยอดเสนอ" : "ยอดขาย(ปิดได้)")} wrapperStyle={{ fontSize: 14 }} />
-          <Line type="monotone" dataKey="quoted" stroke={C_QUOTED} strokeWidth={2.5} strokeDasharray="5 4" dot={{ r: 3, fill: C_QUOTED }} />
-          <Line type="monotone" dataKey="revenue" stroke={C_SALES} strokeWidth={3} dot={{ r: 4, fill: C_SALES }} />
-        </ComposedChart>
-      </ResponsiveContainer>
+      {months.length === 0 && (
+        <div style={{ fontSize: 14, color: "var(--text-faint)", padding: "20px 0" }}>ไม่มีข้อมูล</div>
+      )}
 
-      <div style={{ height: 1, background: "var(--border-subtle)", margin: "4px 0" }} />
-
-      {/* bar เทียบ */}
-      <ResponsiveContainer width="100%" height={220}>
-        <BarChart data={data} margin={{ top: 24, right: 16, left: 8, bottom: 0 }} barGap={4}>
-          <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" vertical={false} />
-          <XAxis dataKey="label" tick={{ fill: "var(--text-dim)", fontSize: 13 }} axisLine={false} tickLine={false} />
-          <YAxis tick={{ fill: "var(--text-faint)", fontSize: 12 }} axisLine={false} tickLine={false} tickFormatter={fmt} width={64} />
-          <Tooltip {...tooltipProps}
-            formatter={(v, n) => [`${fmt(v)} บาท`, n === "quoted" ? "ยอดเสนอ" : "ยอดขาย(ปิดได้)"]} />
-          <Bar dataKey="quoted" fill={C_QUOTED} radius={[4, 4, 0, 0]} maxBarSize={48} />
-          <Bar dataKey="revenue" fill={C_SALES} radius={[4, 4, 0, 0]} maxBarSize={48}>
-            <LabelList dataKey="revenue" position="top" formatter={fmt}
-              style={{ fill: "var(--text-body)", fontSize: 13, fontFamily: "'IBM Plex Mono', monospace", fontWeight: 600 }} />
-          </Bar>
-        </BarChart>
-      </ResponsiveContainer>
+      {months.map((m) => (
+        <div key={`${m.year}-${m.month}`} style={{ marginTop: 18 }}>
+          <div style={{ fontSize: 15, fontWeight: 700, color: ACCENT, marginBottom: 8 }}>
+            {m.month} {m.year}
+          </div>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
+            <thead>
+              <tr style={{ borderBottom: "1px solid var(--border-default)" }}>
+                <th style={thLeft}>สัปดาห์</th>
+                <th style={thRight}>ยอดเสนอ</th>
+                <th style={thRight}>ยอดขาย</th>
+                <th style={thRight}>อัตราปิด</th>
+              </tr>
+            </thead>
+            <tbody>
+              {m.weeks.map((w) => (
+                <tr key={w.week} style={{ borderBottom: "1px solid var(--border-subtle)" }}>
+                  <td style={tdLeft}>สัปดาห์ {w.week}</td>
+                  <td style={tdRight}>{fmtNum(w.quoted)} บาท</td>
+                  <td style={{ ...tdRight, color: ACCENT, fontWeight: 600 }}>{fmtNum(w.revenue)} บาท</td>
+                  <td style={tdRight}>{fmtDec(w.closeRate, 1)}%</td>
+                </tr>
+              ))}
+              {/* แถวรวมของเดือน */}
+              <tr style={{ borderTop: "2px solid var(--border-default)", background: "var(--bg-chip)" }}>
+                <td style={{ ...tdLeft, fontWeight: 700 }}>รวมทั้งเดือน</td>
+                <td style={{ ...tdRight, fontWeight: 700 }}>{fmtNum(m.totQuoted)} บาท</td>
+                <td style={{ ...tdRight, fontWeight: 700, color: ACCENT }}>{fmtNum(m.totRevenue)} บาท</td>
+                <td style={{ ...tdRight, fontWeight: 700 }}>{fmtDec(m.totClose, 1)}%</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      ))}
     </div>
   );
 }
+
+const thLeft = { textAlign: "left", padding: "8px 10px", color: "var(--text-faint)", fontWeight: 600, fontSize: 13 };
+const thRight = { textAlign: "right", padding: "8px 10px", color: "var(--text-faint)", fontWeight: 600, fontSize: 13 };
+const tdLeft = { textAlign: "left", padding: "9px 10px", color: "var(--text-body)" };
+const tdRight = { textAlign: "right", padding: "9px 10px", color: "var(--text-body)", fontFamily: "'IBM Plex Mono', monospace" };

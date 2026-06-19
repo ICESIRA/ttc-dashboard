@@ -176,7 +176,7 @@ export default function Dashboard({ rows, adSpendDaily, theme, onToggleTheme, er
 
       {/* ยอดเสนอ vs ยอดขาย */}
       <div style={{ marginBottom: 20 }}>
-        <OfferVsSalesPanel trend={trend} />
+        <OfferVsSalesPanel rows={rows} />
       </div>
 
       {/* SKU bar + customer mix + top customers */}
