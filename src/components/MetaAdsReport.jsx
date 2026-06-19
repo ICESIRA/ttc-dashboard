@@ -378,7 +378,7 @@ export default function MetaAdsReport() {
                             </td>
                             <td style={mono("right")}>{fmtNum(as.spend)} บาท</td>
                             <td style={mono("right")}>{fmtNum(as.results)}</td>
-                            <td style={mono("right")}>—</td>
+                            <td style={mono("right")}>{as.costPerResult > 0 ? `${fmtDec(as.costPerResult, 2)} บาท` : "—"}</td>
                             <td style={mono("right")}>{fmtNum(as.lead)}</td>
                             <td style={mono("right")}>{fmtDec(as.cpl, 2)} บาท</td>
                             <td style={mono("right")}>{fmtNum(as.reach)}</td>

@@ -27,8 +27,12 @@ import ChannelCards from "./tables/ChannelCards.jsx";
 import SkuTable from "./tables/SkuTable.jsx";
 import SkuChannelHeatmap from "./tables/SkuChannelHeatmap.jsx";
 import MetaAdsReport from "./MetaAdsReport.jsx";
+import { useMetaData } from "../data/useMetaData.js";
 
 export default function Dashboard({ rows, adSpendDaily, theme, onToggleTheme, error, lastUpdated, onRefresh }) {
+  // ดึงค่าแอด Meta จริง (ไว้โชว์ในการ์ด Ad Spend เสริมจาก sheet)
+  const { data: metaData } = useMetaData();
+  const metaSpend = metaData && metaData.kpi ? metaData.kpi.spend : 0;
   // ─── filter state (SKU / channel / customer) ───
   const [activeSku, setActiveSku] = useState(null);
   const [activeChannel, setActiveChannel] = useState(null);
@@ -78,10 +82,13 @@ export default function Dashboard({ rows, adSpendDaily, theme, onToggleTheme, er
   );
   const kpi = useMemo(() => {
     const k = computeKPIs(filtered);
-    k.adSpend = periodAdSpend;
-    k.roas = periodAdSpend > 0 ? k.revenue / periodAdSpend : 0;
+    // ใช้ค่าแอดจาก sheet ก่อน ถ้าไม่มี (=0) ใช้ค่าแอดจริงจาก Meta
+    const adSpend = periodAdSpend > 0 ? periodAdSpend : metaSpend;
+    k.adSpend = adSpend;
+    k.adSpendSource = periodAdSpend > 0 ? "sheet" : (metaSpend > 0 ? "meta" : "none");
+    k.roas = adSpend > 0 ? k.revenue / adSpend : 0;
     return k;
-  }, [filtered, periodAdSpend]);
+  }, [filtered, periodAdSpend, metaSpend]);
   const trend = useMemo(
     () => (range ? buildTrendRange(filteredBase, range.start, range.end) : { data: [], title: "", granularity: "day" }),
     [filteredBase, range]
@@ -132,7 +139,7 @@ export default function Dashboard({ rows, adSpendDaily, theme, onToggleTheme, er
         <KPICard label="Count QA" value={fmtParts(kpi.qaCount, "")} sub="Lead / Inquiry ทั้งหมด" color="var(--text-dim)" delta={d("qaCount")} />
         <KPICard label="Total Orders" value={fmtParts(kpi.orders, "")} sub="ออเดอร์ที่ปิดได้" color="#3b82f6" delta={d("orders")} />
         <KPICard label="% Close Rate (จาก QA)" value={`${fmtDec(kpi.closeRate, 1)}%`} sub={`${fmtNum(kpi.orders)} ÷ ${fmtNum(kpi.qaCount)} QA`} color={kpi.closeRate > 25 ? "#10b981" : kpi.closeRate > 15 ? "#f59e0b" : "#f87171"} />
-        <KPICard label="ค่าโฆษณา (Ad Spend)" value={fmtParts(kpi.adSpend, "บาท")} sub={kpi.adSpend > 0 ? `ROAS ${fmtDec(kpi.roas, 2)}x · ยอดขาย ÷ ค่าแอด` : "ยังไม่มีข้อมูลค่าแอดในช่วงนี้"} color="#fb923c" />
+        <KPICard label="ค่าโฆษณา (Ad Spend)" value={fmtParts(kpi.adSpend, "บาท")} sub={kpi.adSpend > 0 ? (kpi.adSpendSource === "meta" ? `ค่าแอดจริงจาก Meta · ROAS ${fmtDec(kpi.roas, 2)}x` : `ROAS ${fmtDec(kpi.roas, 2)}x · ยอดขาย ÷ ค่าแอด`) : "ยังไม่มีข้อมูลค่าแอดในช่วงนี้"} color="#fb923c" />
       </div>
 
       {/* ยอดเสนอ vs ยอดขาย */}

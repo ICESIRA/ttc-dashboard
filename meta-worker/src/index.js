@@ -187,75 +187,108 @@ export default {
         return ageOrder.filter((a) => map[a]).map((a) => map[a]);
       };
 
-      // ══ 7) แคมเปญ → adset → ad (+ รูป) ══
+      // ══ 7) แคมเปญ → adset → ad (+ รูป) — ดึงแบบ batch กัน Worker timeout ══
+      // แทนการ loop ยิง insights ทีละตัว (หลายร้อย call) → ใช้ account insights ทีละ level (call เดียวต่อ level)
+      const insightsByLevel = async (level) => {
+        const map = {};
+        let url = `${account}/insights`;
+        let params = {
+          time_range: timeRange,
+          level,
+          fields: "spend,reach,clicks,ctr,actions,campaign_id,adset_id,ad_id",
+          limit: "500",
+        };
+        // ดึงทุกหน้า (paging)
+        for (let page = 0; page < 6; page++) {
+          const res = await graph(url, params, token).catch(() => ({ data: [] }));
+          for (const row of res.data || []) {
+            const key = level === "campaign" ? row.campaign_id : level === "adset" ? row.adset_id : row.ad_id;
+            if (key) map[key] = row;
+          }
+          const next = res.paging && res.paging.cursors && res.paging.cursors.after;
+          if (!next || !(res.data || []).length) break;
+          params = { ...params, after: next };
+        }
+        return map;
+      };
+
+      const campInsights = await insightsByLevel("campaign");
+      const adsetInsights = await insightsByLevel("adset");
+      const adInsights = await insightsByLevel("ad");
+
+      // ดึง list แคมเปญ (แบน) + adset/ad tree (แยก query กัน Meta ไม่ส่ง nested ลึก)
       const campRaw = await graph(`${account}/campaigns`, {
         fields: "name,objective,status",
-        limit: "25",
-      }, token);
+        limit: "200",
+      }, token).catch(() => ({ data: [] }));
+
+      // adset + ad + creative (ทีละแคมเปญที่มี spend เท่านั้น เพื่อลด call)
+      const campWithSpend = (campRaw.data || []).filter((c) => num((campInsights[c.id] || {}).spend) > 0);
+
+      const adsetTreeByCampaign = {};
+      for (const c of campWithSpend) {
+        const tree = await graph(`${c.id}/adsets`, {
+          fields: "name,status,ads.limit(50){name,status,creative{thumbnail_url,image_url,object_story_spec}}",
+          limit: "50",
+        }, token).catch(() => ({ data: [] }));
+        adsetTreeByCampaign[c.id] = tree.data || [];
+      }
+
+      const pickImg = (cr) => {
+        cr = cr || {};
+        const oss = cr.object_story_spec || {};
+        const linkImg = oss.link_data && oss.link_data.picture;
+        const videoImg = oss.video_data && oss.video_data.image_url;
+        const full = cr.image_url || linkImg || videoImg || cr.thumbnail_url || "";
+        const thumb = cr.thumbnail_url || full || "";
+        return { full, thumb };
+      };
+      const resultsOf = (row) =>
+        getAction(row && row.actions, "onsite_conversion.messaging_conversation_started_7d") ||
+        getAction(row && row.actions, "lead");
 
       const campaigns = [];
       for (const c of campRaw.data || []) {
-        // insights ของแคมเปญ
-        const ci = await graph(`${c.id}/insights`, {
-          time_range: timeRange, fields: "spend,reach,clicks,actions",
-        }, token).catch(() => ({ data: [] }));
-        const c0 = (ci.data && ci.data[0]) || {};
-        const cResults = getAction(c0.actions, "onsite_conversion.messaging_conversation_started_7d") || getAction(c0.actions, "lead");
-        const cLead = getAction(c0.actions, "lead");
+        const c0 = campInsights[c.id] || {};
         const cSpend = num(c0.spend);
+        const cResults = resultsOf(c0);
+        const cLead = getAction(c0.actions, "lead");
 
-        // adsets
-        const asRaw = await graph(`${c.id}/adsets`, { fields: "name,status", limit: "25" }, token).catch(() => ({ data: [] }));
         const adsets = [];
-        for (const as of asRaw.data || []) {
-          const asi = await graph(`${as.id}/insights`, {
-            time_range: timeRange, fields: "spend,reach,actions",
-          }, token).catch(() => ({ data: [] }));
-          const as0 = (asi.data && asi.data[0]) || {};
-          const asResults = getAction(as0.actions, "onsite_conversion.messaging_conversation_started_7d") || getAction(as0.actions, "lead");
-          const asLead = getAction(as0.actions, "lead");
+        for (const as of adsetTreeByCampaign[c.id] || []) {
+          const as0 = adsetInsights[as.id] || {};
           const asSpend = num(as0.spend);
+          const asResults = resultsOf(as0);
+          const asLead = getAction(as0.actions, "lead");
 
-          // ads + creative image (ขอ thumbnail ใหญ่ขึ้น + รูปเต็ม)
-          const adsRaw = await graph(`${as.id}/ads`, {
-            fields: "name,status,creative{thumbnail_url,image_url,object_story_spec}",
-            thumbnail_width: "1080",
-            thumbnail_height: "1080",
-            limit: "25",
-          }, token).catch(() => ({ data: [] }));
           const ads = [];
-          for (const ad of adsRaw.data || []) {
-            const adi = await graph(`${ad.id}/insights`, {
-              time_range: timeRange, fields: "spend,reach,ctr,actions",
-            }, token).catch(() => ({ data: [] }));
-            const ad0 = (adi.data && adi.data[0]) || {};
-            const adResults = getAction(ad0.actions, "onsite_conversion.messaging_conversation_started_7d") || getAction(ad0.actions, "lead");
-            const cr = ad.creative || {};
-            // ดึงรูปจาก object_story_spec ถ้ามี (มักเป็นรูปเต็ม)
-            const oss = cr.object_story_spec || {};
-            const linkImg = oss.link_data && oss.link_data.picture;
-            const videoImg = oss.video_data && oss.video_data.image_url;
-            const fullImg = cr.image_url || linkImg || videoImg || cr.thumbnail_url || "";
-            const thumbImg = cr.thumbnail_url || fullImg || "";
+          for (const ad of (as.ads && as.ads.data) || []) {
+            const ad0 = adInsights[ad.id] || {};
+            const { full, thumb } = pickImg(ad.creative);
             ads.push({
               id: ad.id, name: ad.name, format: "Ad",
-              spend: num(ad0.spend), results: adResults, lead: getAction(ad0.actions, "lead"),
-              reach: num(ad0.reach), ctr: num(ad0.ctr), imageUrl: thumbImg, fullImageUrl: fullImg,
+              spend: num(ad0.spend), results: resultsOf(ad0), lead: getAction(ad0.actions, "lead"),
+              reach: num(ad0.reach), ctr: num(ad0.ctr), imageUrl: thumb, fullImageUrl: full,
             });
           }
 
           adsets.push({
             id: as.id, name: as.name, status: as.status === "ACTIVE" ? "Active" : "Pause",
-            spend: asSpend, results: asResults, lead: asLead,
-            cpl: asLead > 0 ? asSpend / asLead : 0, reach: num(as0.reach), ads,
+            spend: asSpend, results: asResults, costPerResult: asResults > 0 ? asSpend / asResults : 0,
+            lead: asLead, cpl: asLead > 0 ? asSpend / asLead : 0, reach: num(as0.reach), ads,
           });
         }
+
+        // ซ่อน adset ที่ค่าใช้จ่าย 0 + เรียงงบมาก→น้อย
+        const adsetsFiltered = adsets
+          .filter((a) => a.spend > 0)
+          .sort((a, b) => b.spend - a.spend);
 
         campaigns.push({
           id: c.id, name: c.name, objective: c.objective,
           status: c.status === "ACTIVE" ? "Active" : "Pause",
           spend: cSpend, results: cResults, costPerResult: cResults > 0 ? cSpend / cResults : 0,
-          lead: cLead, cpl: cLead > 0 ? cSpend / cLead : 0, reach: num(c0.reach), adsets,
+          lead: cLead, cpl: cLead > 0 ? cSpend / cLead : 0, reach: num(c0.reach), adsets: adsetsFiltered,
         });
       }
 
