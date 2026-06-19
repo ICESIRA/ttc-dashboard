@@ -14,7 +14,7 @@ import {
 import {
   presetRange, filterByRange, buildTrendRange, computeDeltaRange, adSpendForRange,
 } from "../lib/daterange.js";
-import { fmtB, fmtNum, fmtDec, fmtParts } from "../lib/format.js";
+import { fmtB, fmtNum, fmtDec, fmtParts, sum } from "../lib/format.js";
 
 import Header from "./Header.jsx";
 import DateRangePicker from "./DateRangePicker.jsx";
@@ -42,6 +42,7 @@ export default function Dashboard({ rows, adSpendDaily, theme, onToggleTheme, er
 
   // ─── date-range state ───
   const [range, setRange] = useState(null); // { start, end } (Date)
+  const [compareRange, setCompareRange] = useState(null); // { start, end } ช่วงเทียบกำหนดเอง (null = อัตโนมัติ)
   const [didInit, setDidInit] = useState(false);
 
   // ตั้งค่าเริ่มต้นครั้งแรกที่ข้อมูลมา — "เดือนนี้" (อิงวันนี้จริง)
@@ -97,10 +98,25 @@ export default function Dashboard({ rows, adSpendDaily, theme, onToggleTheme, er
   const channelData = useMemo(() => computeChannelData(filtered), [filtered]);
   const topCustomers = useMemo(() => computeTopCustomers(filtered), [filtered]);
   const customerMix = useMemo(() => computeCustomerMix(filtered), [filtered]);
-  const delta = useMemo(
-    () => (range ? computeDeltaRange(filteredBase, range.start, range.end) : null),
-    [filteredBase, range]
-  );
+  const delta = useMemo(() => {
+    if (!range) return null;
+    // ถ้ากำหนดช่วงเทียบเอง → คำนวณ % เทียบช่วงนั้น, ไม่งั้นใช้ช่วงก่อนหน้าอัตโนมัติ
+    if (compareRange) {
+      const agg = (rs) => ({
+        quoted: sum(rs, "quotedRevenue"), revenue: sum(rs, "revenue"),
+        orders: sum(rs, "orders"), qaCount: sum(rs, "qaCount"),
+      });
+      const pct = (cur, prev) => (prev > 0 ? ((cur - prev) / prev) * 100 : null);
+      const cur = agg(filterByRange(filteredBase, range.start, range.end));
+      const prev = agg(filterByRange(filteredBase, compareRange.start, compareRange.end));
+      return {
+        label: `เทียบช่วงที่เลือก`,
+        quoted: pct(cur.quoted, prev.quoted), revenue: pct(cur.revenue, prev.revenue),
+        orders: pct(cur.orders, prev.orders), qaCount: pct(cur.qaCount, prev.qaCount),
+      };
+    }
+    return computeDeltaRange(filteredBase, range.start, range.end);
+  }, [filteredBase, range, compareRange]);
   const d = (key) => (delta ? { pct: delta[key], label: delta.label } : null);
 
   const handleHeatmapCell = (sku, ch, isActiveCell) => {
@@ -121,8 +137,14 @@ export default function Dashboard({ rows, adSpendDaily, theme, onToggleTheme, er
 
       {range && (
         <DateRangePicker
-          start={range.start} end={range.end} rows={rows}
-          onChange={(start, end) => setRange({ start, end })}
+          start={range.start} end={range.end}
+          compareStart={compareRange && compareRange.start}
+          compareEnd={compareRange && compareRange.end}
+          rows={rows}
+          onChange={(start, end, cmpStart, cmpEnd) => {
+            setRange({ start, end });
+            setCompareRange(cmpStart && cmpEnd ? { start: cmpStart, end: cmpEnd } : null);
+          }}
         />
       )}
 
