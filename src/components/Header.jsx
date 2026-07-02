@@ -12,10 +12,10 @@ function fmtTime(date) {
 
 export default function Header({
   filteredCount, totalCount, hasFilter, theme,
-  error, lastUpdated, onToggleTheme, onClearFilters, onRefresh,
+  error, lastUpdated, onToggleTheme, onClearFilters, onRefresh, rightSlot,
 }) {
   return (
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20, gap: 16, flexWrap: "wrap" }}>
       <div>
         <div style={{ fontSize: 13, color: "var(--accent)", letterSpacing: 2, textTransform: "uppercase", marginBottom: 4 }}>
           TTC FACTORY · SKU ANALYTICS
@@ -32,26 +32,29 @@ export default function Header({
         </div>
       </div>
 
-      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-        {hasFilter && (
-          <button onClick={onClearFilters}
-            style={{ background: "var(--bg-chip)", border: "1px solid var(--border-default)", color: "var(--text-muted)", padding: "8px 16px", borderRadius: 8, cursor: "pointer", fontSize: 14 }}>
-            ล้าง filter ทั้งหมด ×
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 12 }}>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          {hasFilter && (
+            <button onClick={onClearFilters}
+              style={{ background: "var(--bg-chip)", border: "1px solid var(--border-default)", color: "var(--text-muted)", padding: "8px 16px", borderRadius: 8, cursor: "pointer", fontSize: 14 }}>
+              ล้าง filter ทั้งหมด ×
+            </button>
+          )}
+          <button onClick={onRefresh} title="โหลดข้อมูลใหม่ตอนนี้"
+            style={{ background: "var(--bg-chip)", border: "1px solid var(--border-default)", color: "var(--text-primary)", padding: "8px 12px", borderRadius: 8, cursor: "pointer", fontSize: 16, width: 38, height: 38 }}>
+            ↻
           </button>
-        )}
-        <button onClick={onRefresh} title="โหลดข้อมูลใหม่ตอนนี้"
-          style={{ background: "var(--bg-chip)", border: "1px solid var(--border-default)", color: "var(--text-primary)", padding: "8px 12px", borderRadius: 8, cursor: "pointer", fontSize: 16, width: 38, height: 38 }}>
-          ↻
-        </button>
-        <button onClick={onToggleTheme}
-          title={theme === "light" ? "เปลี่ยนเป็นโหมดมืด" : "เปลี่ยนเป็นโหมดสว่าง"}
-          style={{
-            background: "var(--bg-chip)", border: "1px solid var(--border-default)", color: "var(--text-primary)",
-            padding: "8px 12px", borderRadius: 8, cursor: "pointer", fontSize: 19, lineHeight: 1, width: 38, height: 38,
-            display: "flex", alignItems: "center", justifyContent: "center",
-          }}>
-          {theme === "light" ? "🌙" : "☀"}
-        </button>
+          <button onClick={onToggleTheme}
+            title={theme === "light" ? "เปลี่ยนเป็นโหมดมืด" : "เปลี่ยนเป็นโหมดสว่าง"}
+            style={{
+              background: "var(--bg-chip)", border: "1px solid var(--border-default)", color: "var(--text-primary)",
+              padding: "8px 12px", borderRadius: 8, cursor: "pointer", fontSize: 19, lineHeight: 1, width: 38, height: 38,
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}>
+            {theme === "light" ? "🌙" : "☀"}
+          </button>
+        </div>
+        {rightSlot}
       </div>
     </div>
   );

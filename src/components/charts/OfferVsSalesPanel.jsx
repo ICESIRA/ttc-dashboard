@@ -1,7 +1,7 @@
 // ────────────────────────────────────────────────────────────────
 // OfferVsSalesPanel.jsx — ตารางยอดเสนอ/ยอดขาย รายสัปดาห์ (เลือกเดือนได้)
 //   แสดงทีละเดือน · dropdown เลือกเดือน · แบ่งคอลัมน์รายสัปดาห์
-//   แต่ละช่องแยกตามกลุ่มสินค้า (sku) · ปุ่มสลับ ยอดเสนอ ↔ ยอดขาย
+//   แต่ละสัปดาห์เป็น "ตารางย่อย": SKU | ยอดเสนอ | ยอดขาย | ratio (ปิดได้)
 // ────────────────────────────────────────────────────────────────
 import { useMemo, useState } from "react";
 import { ACCENT, monthIndex } from "../../config/constants.js";
@@ -15,7 +15,6 @@ const weekRangeLabel = (w, daysInMonth) => {
   ];
   const r = ranges[w - 1];
   if (!r) return `Week ${w}`;
-  // ถ้า start เกินจำนวนวันในเดือน (สัปดาห์นี้ไม่มีจริง) — ไม่ควรเกิดเพราะ filter แล้ว
   return `Week ${r[0]}-${r[1]}`;
 };
 // จำนวนวันในเดือน (mi = 0-11)
@@ -28,15 +27,11 @@ const weekOf = (day) => {
   return 5;
 };
 
-const METRICS = [
-  { id: "quoted", label: "ยอดเสนอ", field: "quotedRevenue" },
-  { id: "revenue", label: "ยอดขาย", field: "revenue" },
-];
+// สี ratio: ยิ่งปิดได้สูง ยิ่งเขียว
+const ratioColor = (r) => (r >= 50 ? "#16a34a" : r >= 25 ? "#d99514" : "var(--text-faint)");
 
 export default function OfferVsSalesPanel({ rows }) {
-  const [metric, setMetric] = useState("quoted");
   const [selectedKey, setSelectedKey] = useState(null); // year*100+mi
-  const activeField = METRICS.find((m) => m.id === metric).field;
 
   // รายชื่อเดือนทั้งหมดที่มีข้อมูล (ใหม่→เก่า)
   const monthOptions = useMemo(() => {
@@ -56,13 +51,13 @@ export default function OfferVsSalesPanel({ rows }) {
     ? selectedKey
     : (monthOptions[0] && monthOptions[0].key);
 
-  // ข้อมูลของเดือนที่เลือก
+  // ข้อมูลของเดือนที่เลือก — เก็บทั้ง quoted + revenue ต่อ (สัปดาห์ × SKU)
   const monthData = useMemo(() => {
     if (activeKey == null) return null;
     const opt = monthOptions.find((m) => m.key === activeKey);
     if (!opt) return null;
     const { year, mi, month } = opt;
-    const weeks = {};
+    const weeks = {};          // weeks[w][sku] = { quoted, revenue }
     const skuSet = new Set();
     for (const r of rows) {
       if (r.year !== year || monthIndex(r.month) !== mi) continue;
@@ -70,56 +65,38 @@ export default function OfferVsSalesPanel({ rows }) {
       const sku = r.sku || "อื่นๆ";
       skuSet.add(sku);
       if (!weeks[w]) weeks[w] = {};
-      weeks[w][sku] = (weeks[w][sku] || 0) + (r[activeField] || 0);
+      if (!weeks[w][sku]) weeks[w][sku] = { quoted: 0, revenue: 0 };
+      weeks[w][sku].quoted += r.quotedRevenue || 0;
+      weeks[w][sku].revenue += r.revenue || 0;
     }
     const weekList = Object.keys(weeks).map(Number).sort((a, b) => a - b);
     return { year, month, weeks, weekList, skus: [...skuSet], daysInMonth: daysInMonthOf(year, mi) };
-  }, [rows, activeKey, activeField, monthOptions]);
+  }, [rows, activeKey, monthOptions]);
 
   return (
     <div style={cardStyle}>
-      {/* หัว + ปุ่มสลับ */}
+      {/* หัว + dropdown เลือกเดือน */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 10, marginBottom: 14 }}>
         <div>
           <div style={{ fontSize: 17, color: "var(--text-heading)", fontWeight: 700 }}>
             ยอดเสนอ vs ยอดขาย — รายสัปดาห์
           </div>
           <div style={{ fontSize: 13, color: "var(--text-faint)", marginTop: 2 }}>
-            แยกตามกลุ่มสินค้า · เลือกเดือน + สลับมุมมองได้
+            แยกตามกลุ่มสินค้า · แต่ละสัปดาห์โชว์ ยอดเสนอ / ยอดขาย / ratio (อัตราปิด)
           </div>
         </div>
-        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-          {/* dropdown เลือกเดือน */}
-          <select
-            value={activeKey ?? ""}
-            onChange={(e) => setSelectedKey(Number(e.target.value))}
-            style={{
-              padding: "8px 12px", borderRadius: 10, fontSize: 14, cursor: "pointer",
-              background: "var(--bg-chip)", color: "var(--text-primary)",
-              border: "1px solid var(--border-default)", fontFamily: "'IBM Plex Sans Thai', sans-serif",
-            }}>
-            {monthOptions.map((m) => (
-              <option key={m.key} value={m.key}>{m.month} {m.year}</option>
-            ))}
-          </select>
-          {/* ปุ่มสลับ ยอดเสนอ/ยอดขาย */}
-          <div style={{ display: "inline-flex", borderRadius: 10, overflow: "hidden", border: "1px solid var(--border-default)" }}>
-            {METRICS.map((m) => {
-              const active = metric === m.id;
-              return (
-                <button key={m.id} onClick={() => setMetric(m.id)}
-                  style={{
-                    padding: "8px 18px", fontSize: 14, cursor: "pointer", border: "none",
-                    background: active ? ACCENT : "var(--bg-chip)",
-                    color: active ? "#fff" : "var(--text-muted)", fontWeight: active ? 700 : 500,
-                    fontFamily: "'IBM Plex Sans Thai', sans-serif",
-                  }}>
-                  {m.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
+        <select
+          value={activeKey ?? ""}
+          onChange={(e) => setSelectedKey(Number(e.target.value))}
+          style={{
+            padding: "8px 12px", borderRadius: 10, fontSize: 14, cursor: "pointer",
+            background: "var(--bg-chip)", color: "var(--text-primary)",
+            border: "1px solid var(--border-default)", fontFamily: "'IBM Plex Sans Thai', sans-serif",
+          }}>
+          {monthOptions.map((m) => (
+            <option key={m.key} value={m.key}>{m.month} {m.year}</option>
+          ))}
+        </select>
       </div>
 
       {!monthData && (
@@ -137,35 +114,63 @@ export default function OfferVsSalesPanel({ rows }) {
             {monthData.month} {monthData.year}
           </div>
 
-          {/* คอลัมน์รายสัปดาห์ */}
-          <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 6 }}>
-            {monthData.weekList.map((w) => (
-              <div key={w} style={{ flex: "1 1 0", minWidth: 150 }}>
-                <div style={{
-                  fontSize: 13, fontWeight: 700, color: ACCENT, textAlign: "center",
-                  background: "var(--bg-chip)", borderRadius: 6, padding: "6px 0", marginBottom: 8,
-                }}>
-                  {weekRangeLabel(w, monthData.daysInMonth)}
+          {/* คอลัมน์รายสัปดาห์ — แต่ละอันเป็นตารางย่อย */}
+          <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 6 }}>
+            {monthData.weekList.map((w) => {
+              // รวมทั้งสัปดาห์ (ทุก SKU)
+              const wk = monthData.weeks[w] || {};
+              const totQ = monthData.skus.reduce((a, s) => a + (wk[s]?.quoted || 0), 0);
+              const totR = monthData.skus.reduce((a, s) => a + (wk[s]?.revenue || 0), 0);
+              const totRatio = totQ > 0 ? (totR / totQ) * 100 : 0;
+              return (
+                <div key={w} style={{ flex: "1 1 0", minWidth: 300 }}>
+                  <div style={{
+                    fontSize: 13, fontWeight: 700, color: ACCENT, textAlign: "center",
+                    background: "var(--bg-chip)", borderRadius: 6, padding: "6px 0", marginBottom: 8,
+                  }}>
+                    {weekRangeLabel(w, monthData.daysInMonth)}
+                  </div>
+
+                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5, tableLayout: "fixed" }}>
+                    <thead>
+                      <tr style={{ color: "var(--text-faint)" }}>
+                        <th style={{ ...thTd, textAlign: "left", width: "34%" }}>SKU</th>
+                        <th style={{ ...thTd, textAlign: "right" }}>เสนอ</th>
+                        <th style={{ ...thTd, textAlign: "right" }}>ขาย</th>
+                        <th style={{ ...thTd, textAlign: "right", width: "18%" }}>ratio</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {monthData.skus.map((sku) => {
+                        const cell = wk[sku] || { quoted: 0, revenue: 0 };
+                        const ratio = cell.quoted > 0 ? (cell.revenue / cell.quoted) * 100 : 0;
+                        return (
+                          <tr key={sku} style={{ borderTop: "1px solid var(--border-subtle)" }}>
+                            <td style={{ ...thTd, textAlign: "left", color: "var(--text-body)", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{sku}</td>
+                            <td style={{ ...thTd, textAlign: "right", color: "var(--text-muted)", fontFamily: mono }}>{fmtNum(cell.quoted)}</td>
+                            <td style={{ ...thTd, textAlign: "right", color: ACCENT, fontWeight: 700, fontFamily: mono }}>{fmtNum(cell.revenue)}</td>
+                            <td style={{ ...thTd, textAlign: "right", color: ratioColor(ratio), fontWeight: 700, fontFamily: mono }}>{ratio.toFixed(0)}%</td>
+                          </tr>
+                        );
+                      })}
+                      {/* แถวรวม */}
+                      <tr style={{ borderTop: "2px solid var(--border-default)", background: "var(--bg-page)" }}>
+                        <td style={{ ...thTd, textAlign: "left", fontWeight: 700, color: "var(--text-heading)" }}>รวม</td>
+                        <td style={{ ...thTd, textAlign: "right", fontWeight: 700, fontFamily: mono, color: "var(--text-muted)" }}>{fmtNum(totQ)}</td>
+                        <td style={{ ...thTd, textAlign: "right", fontWeight: 700, fontFamily: mono, color: ACCENT }}>{fmtNum(totR)}</td>
+                        <td style={{ ...thTd, textAlign: "right", fontWeight: 700, fontFamily: mono, color: ratioColor(totRatio) }}>{totRatio.toFixed(0)}%</td>
+                      </tr>
+                    </tbody>
+                  </table>
                 </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                  {monthData.skus.map((sku) => (
-                    <div key={sku} style={{
-                      display: "flex", justifyContent: "space-between", alignItems: "center",
-                      fontSize: 13, padding: "7px 10px", borderRadius: 6,
-                      background: "var(--bg-page)", border: "1px solid var(--border-subtle)",
-                    }}>
-                      <span style={{ color: "var(--text-body)", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 90 }}>{sku}</span>
-                      <span style={{ color: ACCENT, fontWeight: 700, fontFamily: "'IBM Plex Mono', monospace", flexShrink: 0 }}>
-                        {fmtNum(monthData.weeks[w][sku] || 0)}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
     </div>
   );
 }
+
+const mono = "'IBM Plex Mono', monospace";
+const thTd = { padding: "6px 8px", fontWeight: 500 };

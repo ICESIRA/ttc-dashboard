@@ -92,7 +92,7 @@ export default function DateRangePicker({ start, end, compareStart, compareEnd, 
   };
 
   return (
-    <div style={{ position: "relative", marginBottom: 18 }}>
+    <div style={{ position: "relative" }}>
       {/* pill (ชิดขวา) */}
       <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", justifyContent: "flex-end" }}>
         <span style={{ fontSize: 15, color: "var(--text-muted)", fontWeight: 500 }}>ช่วงเวลา:</span>

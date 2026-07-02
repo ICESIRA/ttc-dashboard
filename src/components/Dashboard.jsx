@@ -141,27 +141,28 @@ export default function Dashboard({ rows, adSpendDaily, theme, onToggleTheme, er
         filteredCount={filtered.length} totalCount={rows.length} hasFilter={hasFilter}
         theme={theme} error={error} lastUpdated={lastUpdated}
         onToggleTheme={onToggleTheme} onClearFilters={clearAllFilters} onRefresh={onRefresh}
+        rightSlot={
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
+            {range && (
+              <DateRangePicker
+                start={range.start} end={range.end}
+                compareStart={compareRange && compareRange.start}
+                compareEnd={compareRange && compareRange.end}
+                rows={rows}
+                onChange={(start, end, cmpStart, cmpEnd) => {
+                  setRange({ start, end });
+                  setCompareRange(cmpStart && cmpEnd ? { start: cmpStart, end: cmpEnd } : null);
+                }}
+              />
+            )}
+            {rows.length > 0 && (
+              <div style={{ fontSize: 13, color: "var(--text-faint)", textAlign: "right" }}>
+                📊 ข้อมูลจากตารางอัปเดตล่าสุดถึงวันที่ {dateToISO(latestDataDate(rows))}
+              </div>
+            )}
+          </div>
+        }
       />
-
-      {range && (
-        <DateRangePicker
-          start={range.start} end={range.end}
-          compareStart={compareRange && compareRange.start}
-          compareEnd={compareRange && compareRange.end}
-          rows={rows}
-          onChange={(start, end, cmpStart, cmpEnd) => {
-            setRange({ start, end });
-            setCompareRange(cmpStart && cmpEnd ? { start: cmpStart, end: cmpEnd } : null);
-          }}
-        />
-      )}
-
-      {/* แจ้งวันที่ข้อมูลล่าสุดจากตาราง */}
-      {rows.length > 0 && (
-        <div style={{ fontSize: 13, color: "var(--text-faint)", marginTop: -8, marginBottom: 16 }}>
-          📊 ข้อมูลจากตารางอัปเดตล่าสุดถึงวันที่ {dateToISO(latestDataDate(rows))}
-        </div>
-      )}
 
       {/* KPI row 1 */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 12 }}>
