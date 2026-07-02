@@ -81,10 +81,21 @@ export function earliestDataDate(rows) {
 export function presetRange(id, rows) {
   const today = stripTime(new Date()); // วันนี้จริงตามปฏิทิน
   const end = today;
+  const yst = addDays(today, -1);
   switch (id) {
+    case "today":
+      return { start: today, end: today };
+    case "yesterday":
+      return { start: yst, end: yst };
     case "thisMonth":
       // เดือนปัจจุบันจริง: วันที่ 1 ของเดือนนี้ → วันนี้
       return { start: new Date(today.getFullYear(), today.getMonth(), 1), end };
+    case "lastMonth": {
+      // เดือนก่อนหน้าเต็มเดือน
+      const s = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+      const e = new Date(today.getFullYear(), today.getMonth(), 0);
+      return { start: s, end: e };
+    }
     case "last7":
       return { start: addDays(today, -6), end };
     case "last14":
@@ -92,14 +103,14 @@ export function presetRange(id, rows) {
     case "last30":
       return { start: addDays(today, -29), end };
     case "thisWeek": {
-      // สัปดาห์นี้ (เริ่มวันจันทร์) ถึงวันนี้
-      const dow = (today.getDay() + 6) % 7; // จ.=0 ... อา.=6
+      // สัปดาห์นี้ (เริ่มวันอาทิตย์แบบ Google Ads) → วันนี้
+      const dow = today.getDay(); // อา.=0 ... ส.=6
       return { start: addDays(today, -dow), end };
     }
     case "lastWeek": {
-      const dow = (today.getDay() + 6) % 7;
-      const thisMon = addDays(today, -dow);
-      return { start: addDays(thisMon, -7), end: addDays(thisMon, -1) };
+      // สัปดาห์ก่อน (อา.–ส.)
+      const thisSun = addDays(today, -today.getDay());
+      return { start: addDays(thisSun, -7), end: addDays(thisSun, -1) };
     }
     case "last2w":
       return { start: addDays(today, -13), end };
@@ -113,6 +124,14 @@ export function presetRange(id, rows) {
     default:
       return { start: new Date(today.getFullYear(), today.getMonth(), 1), end };
   }
+}
+
+// ช่วง "N วันจนถึงวันนี้/เมื่อวาน" (แบบ Google Ads: N days up to today/yesterday)
+export function daysUpTo(n, anchor /* "today" | "yesterday" */) {
+  const today = stripTime(new Date());
+  const end = anchor === "yesterday" ? addDays(today, -1) : today;
+  const days = Math.max(1, Number(n) || 1);
+  return { start: addDays(end, -(days - 1)), end };
 }
 
 // ช่วงของ "ทั้งเดือน" (cap ปลายไม่ให้เกินวันนี้จริง ถ้าเป็นเดือนปัจจุบัน)

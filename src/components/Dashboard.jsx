@@ -48,10 +48,15 @@ export default function Dashboard({ rows, adSpendDaily, theme, onToggleTheme, er
   const { data: metaData } = useMetaData(metaSince, metaUntil);
   const metaSpend = metaData && metaData.kpi ? metaData.kpi.spend : 0;
 
-  // ตั้งค่าเริ่มต้นครั้งแรกที่ข้อมูลมา — "เดือนนี้" (อิงวันนี้จริง)
+  // ตั้งค่าเริ่มต้นครั้งแรกที่ข้อมูลมา — "เดือนล่าสุดที่มีข้อมูลจริง"
+  // (ไม่ใช้ "เดือนนี้" เพราะถ้าวันนี้เป็นต้นเดือนที่ยังไม่มีข้อมูล จะเห็นตารางว่าง)
   useEffect(() => {
     if (didInit || rows.length === 0) return;
-    setRange(presetRange("thisMonth", rows));
+    const latest = latestDataDate(rows); // วันล่าสุดที่มีข้อมูลในชีต
+    setRange({
+      start: new Date(latest.getFullYear(), latest.getMonth(), 1), // วันที่ 1 ของเดือนล่าสุด
+      end: latest,
+    });
     setDidInit(true);
   }, [rows, didInit]);
 
