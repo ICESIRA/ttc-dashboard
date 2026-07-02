@@ -20,6 +20,7 @@ import Header from "./Header.jsx";
 import DateRangePicker from "./DateRangePicker.jsx";
 import KPICard from "./kpi/KPICard.jsx";
 import OfferVsSalesPanel from "./charts/OfferVsSalesPanel.jsx";
+import ContactHeatmap from "./charts/ContactHeatmap.jsx";
 import SkuBarChart from "./charts/SkuBarChart.jsx";
 import CustomerMixDonut from "./charts/CustomerMixDonut.jsx";
 import TopCustomerTable from "./tables/TopCustomerTable.jsx";
@@ -178,6 +179,11 @@ export default function Dashboard({ rows, adSpendDaily, theme, onToggleTheme, er
       {/* ยอดเสนอ vs ยอดขาย */}
       <div style={{ marginBottom: 20 }}>
         <OfferVsSalesPanel rows={filtered} />
+      </div>
+
+      {/* Inquiries × Quoted heatmap (weekday × week) */}
+      <div style={{ marginBottom: 20 }}>
+        <ContactHeatmap rows={filtered} />
       </div>
 
       {/* SKU bar + customer mix + top customers */}
