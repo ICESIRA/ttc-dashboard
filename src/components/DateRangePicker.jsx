@@ -14,16 +14,16 @@ const MONTHS_EN = ["January","February","March","April","May","June","July","Aug
 const DOW = ["S","M","T","W","T","F","S"];
 
 const PRESETS = [
-  { id: "today",     label: "วันนี้" },
-  { id: "yesterday", label: "เมื่อวาน" },
-  { id: "thisWeek",  label: "สัปดาห์นี้ (อา.–วันนี้)" },
-  { id: "last7",     label: "7 วันล่าสุด" },
-  { id: "lastWeek",  label: "สัปดาห์ก่อน (อา.–ส.)" },
-  { id: "last14",    label: "14 วันล่าสุด" },
-  { id: "thisMonth", label: "เดือนนี้" },
-  { id: "last30",    label: "30 วันล่าสุด" },
-  { id: "lastMonth", label: "เดือนก่อน" },
-  { id: "all",       label: "ทั้งหมด" },
+  { id: "today",     label: "Today" },
+  { id: "yesterday", label: "Yesterday" },
+  { id: "thisWeek",  label: "This week (Sun–Today)" },
+  { id: "last7",     label: "Last 7 days" },
+  { id: "lastWeek",  label: "Last week (Sun–Sat)" },
+  { id: "last14",    label: "Last 14 days" },
+  { id: "thisMonth", label: "This month" },
+  { id: "last30",    label: "Last 30 days" },
+  { id: "lastMonth", label: "Last month" },
+  { id: "all",       label: "All time" },
 ];
 
 const firstOfMonth = (d) => new Date(d.getFullYear(), d.getMonth(), 1);
@@ -95,7 +95,7 @@ export default function DateRangePicker({ start, end, compareStart, compareEnd, 
     <div style={{ position: "relative" }}>
       {/* pill (ชิดขวา) */}
       <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", justifyContent: "flex-end" }}>
-        <span style={{ fontSize: 15, color: "var(--text-muted)", fontWeight: 500 }}>ช่วงเวลา:</span>
+        <span style={{ fontSize: 15, color: "var(--text-muted)", fontWeight: 500 }}>Period:</span>
         <button onClick={() => (open ? setOpen(false) : openPanel())}
           style={{
             display: "inline-flex", alignItems: "center", gap: 10, padding: "9px 16px", borderRadius: 12,
@@ -110,7 +110,7 @@ export default function DateRangePicker({ start, end, compareStart, compareEnd, 
         </button>
         {hasCompare && (
           <span style={{ fontSize: 13, color: "var(--text-faint)", fontFamily: "'IBM Plex Mono', monospace" }}>
-            เทียบ: {dateToISO(compareStart)} → {dateToISO(compareEnd)}
+            Compare: {dateToISO(compareStart)} → {dateToISO(compareEnd)}
           </span>
         )}
       </div>
@@ -146,19 +146,19 @@ export default function DateRangePicker({ start, end, compareStart, compareEnd, 
                   <input type="number" min={1} value={upToN}
                     onChange={(e) => setUpToN(Math.max(1, Number(e.target.value) || 1))}
                     style={{ width: 46, ...miniInput }} />
-                  <button onClick={() => pickDaysUpTo("today")} style={miniBtn}>วันจนถึงวันนี้</button>
+                  <button onClick={() => pickDaysUpTo("today")} style={miniBtn}>days up to today</button>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                   <input type="number" min={1} value={upToN}
                     onChange={(e) => setUpToN(Math.max(1, Number(e.target.value) || 1))}
                     style={{ width: 46, ...miniInput }} />
-                  <button onClick={() => pickDaysUpTo("yesterday")} style={miniBtn}>วันจนถึงเมื่อวาน</button>
+                  <button onClick={() => pickDaysUpTo("yesterday")} style={miniBtn}>days up to yesterday</button>
                 </div>
               </div>
 
               {/* Compare toggle */}
               <div style={{ borderTop: "1px solid var(--border-subtle)", marginTop: 6, paddingTop: 10, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <span style={{ fontSize: 14, color: "var(--text-muted)", fontWeight: 500 }}>เปรียบเทียบ</span>
+                <span style={{ fontSize: 14, color: "var(--text-muted)", fontWeight: 500 }}>Compare</span>
                 <button onClick={() => setCmpOn((v) => !v)}
                   style={{
                     width: 42, height: 24, borderRadius: 12, border: "none", cursor: "pointer", position: "relative",
@@ -177,13 +177,13 @@ export default function DateRangePicker({ start, end, compareStart, compareEnd, 
               {/* Start / End */}
               <div style={{ display: "flex", gap: 10 }}>
                 <div style={{ flex: 1 }}>
-                  <label style={miniLabel}>วันที่เริ่ม</label>
+                  <label style={miniLabel}>Start date</label>
                   <input type="date" value={tStart ? dateToISO(tStart) : ""}
                     onChange={(e) => { const d = parseISO(e.target.value); if (d) { setTStart(d); if (tEnd && dateToInt(d) > dateToInt(tEnd)) setTEnd(d); setView(firstOfMonth(d)); setPreset(null); } }}
                     style={dateInput} />
                 </div>
                 <div style={{ flex: 1 }}>
-                  <label style={miniLabel}>ถึงวันที่</label>
+                  <label style={miniLabel}>End date</label>
                   <input type="date" value={tEnd ? dateToISO(tEnd) : ""}
                     onChange={(e) => { const d = parseISO(e.target.value); if (d) { setTEnd(d); setPreset(null); } }}
                     style={dateInput} />
@@ -224,12 +224,12 @@ export default function DateRangePicker({ start, end, compareStart, compareEnd, 
               {cmpOn && (
                 <div style={{ borderTop: "1px solid var(--border-subtle)", paddingTop: 10, display: "flex", gap: 10 }}>
                   <div style={{ flex: 1 }}>
-                    <label style={miniLabel}>เทียบ: เริ่ม</label>
+                    <label style={miniLabel}>Compare: Start</label>
                     <input type="date" value={cStart ? dateToISO(cStart) : ""}
                       onChange={(e) => setCStart(parseISO(e.target.value))} style={dateInput} />
                   </div>
                   <div style={{ flex: 1 }}>
-                    <label style={miniLabel}>เทียบ: ถึง</label>
+                    <label style={miniLabel}>Compare: End</label>
                     <input type="date" value={cEnd ? dateToISO(cEnd) : ""}
                       onChange={(e) => setCEnd(parseISO(e.target.value))} style={dateInput} />
                   </div>

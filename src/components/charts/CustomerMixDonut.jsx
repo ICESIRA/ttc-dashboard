@@ -32,12 +32,12 @@ export default function CustomerMixDonut({ mixData, activeCustomer, onToggleCust
 
   return (
     <div style={cardStyle}>
-      <div style={cardTitle}>สัดส่วนลูกค้าใหม่ vs เก่า</div>
-      <div style={cardSubtitle}>วัดจากยอดขายรวม · กระทบตาม filter ปัจจุบัน</div>
+      <div style={cardTitle}>New vs Returning customers</div>
+      <div style={cardSubtitle}>By total sales · reflects current filters</div>
 
       {total === 0 ? (
         <div style={{ fontSize: 13, color: "var(--text-faint)", padding: "30px 0", textAlign: "center" }}>
-          ไม่มีข้อมูลในช่วงที่เลือก
+          No data in the selected range
         </div>
       ) : (
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
@@ -47,23 +47,23 @@ export default function CustomerMixDonut({ mixData, activeCustomer, onToggleCust
                 <Pie data={mixData} dataKey="value" innerRadius={42} outerRadius={62} startAngle={90} endAngle={-270} stroke="none">
                   {mixData.map((d, i) => <Cell key={i} fill={d.color} />)}
                 </Pie>
-                <Tooltip {...tooltipProps} formatter={(v, n) => [fmtB(v), `ลูกค้า${n}`]} />
+                <Tooltip {...tooltipProps} formatter={(v, n) => [fmtB(v), `${n}`]} />
               </PieChart>
             </ResponsiveContainer>
             <div style={{
               position: "absolute", inset: 0, display: "flex", flexDirection: "column",
               alignItems: "center", justifyContent: "center", pointerEvents: "none",
             }}>
-              <div style={{ fontSize: 10, color: "var(--text-faint)", letterSpacing: 1 }}>รวม</div>
+              <div style={{ fontSize: 10, color: "var(--text-faint)", letterSpacing: 1 }}>Total</div>
               <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-heading)", fontFamily: "'Space Mono'" }}>{fmtB(total)}</div>
             </div>
           </div>
 
           <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 10 }}>
-            <LegendRow label="ลูกค้าใหม่" value={mixData[0].value} pct={newPct} color="#3b82f6"
-              active={activeCustomer === "ใหม่"} onClick={() => onToggleCustomer("ใหม่")} />
-            <LegendRow label="ลูกค้าเก่า" value={mixData[1].value} pct={oldPct} color="#f59e0b"
-              active={activeCustomer === "เก่า"} onClick={() => onToggleCustomer("เก่า")} />
+            <LegendRow label="New" value={mixData[0].value} pct={newPct} color="#3b82f6"
+              active={activeCustomer === "New"} onClick={() => onToggleCustomer("New")} />
+            <LegendRow label="Returning" value={mixData[1].value} pct={oldPct} color="#f59e0b"
+              active={activeCustomer === "Returning"} onClick={() => onToggleCustomer("Returning")} />
           </div>
         </div>
       )}

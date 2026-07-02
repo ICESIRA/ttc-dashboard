@@ -13,7 +13,7 @@ export default function ChannelCards({
   return (
     <div style={{ ...cardStyle, position: "relative" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-        <div style={{ fontSize: 14, color: "var(--text-dim)" }}>ช่องทางขาย (คลิกเพื่อ filter)</div>
+        <div style={{ fontSize: 14, color: "var(--text-dim)" }}>Sales channels (click to filter)</div>
         <button onClick={onTogglePicker}
           style={{
             background: showPicker ? `${ACCENT}22` : "transparent",
@@ -32,7 +32,7 @@ export default function ChannelCards({
           padding: "12px 14px", minWidth: 220, boxShadow: "var(--popup-shadow)",
         }}>
           <div style={{ fontSize: 12, color: ACCENT, letterSpacing: 1, fontWeight: 700, marginBottom: 8 }}>
-            เลือก 4 ช่องทาง · เลือกแล้ว {visibleChannels.length}/4
+            Pick 4 channels · selected {visibleChannels.length}/4
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
             {CHANNELS.map((ch) => {
@@ -56,7 +56,7 @@ export default function ChannelCards({
             })}
           </div>
           <div style={{ fontSize: 11, color: "var(--text-faint)", marginTop: 8, lineHeight: 1.4 }}>
-            💡 แสดงสูงสุด 4 ช่องทาง · ติ๊กเลือกหรือเอาออก
+            💡 Shows up to 4 channels · check to add/remove
           </div>
         </div>
       )}

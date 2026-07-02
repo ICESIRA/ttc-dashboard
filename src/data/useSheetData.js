@@ -30,7 +30,7 @@ export function useSheetData() {
       setLastUpdated(new Date());
     } catch (err) {
       // ถ้า refresh เบื้องหลัง fail → เก็บข้อมูลเดิมไว้ แค่โชว์ error
-      setError(err.message || "เกิดข้อผิดพลาดในการโหลดข้อมูล");
+      setError(err.message || "Failed to load data");
     } finally {
       if (isFirstLoad.current) {
         setLoading(false);

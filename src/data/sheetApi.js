@@ -65,7 +65,7 @@ const parseChannel = (raw) => {
   if (/tiktok/i.test(s)) return "TikTok Shop";
   if (/\big\b|instagram/i.test(s)) return "Instagram";
   if (/web/i.test(s)) return "Website";
-  return "อื่นๆ";
+  return "Others";
 };
 
 // ── normalize tab "กล่อง" ──
@@ -87,10 +87,10 @@ function normalizeBox(row, idx) {
     year,
     month,
     day,
-    sku: group.toLowerCase() === "custom" ? "กล่อง Custom" : "กล่อง STD",
+    sku: group.toLowerCase() === "custom" ? "Box Custom" : "Box STD",
     channel: parseChannel(seen),
-    customerName: String(row["ชื่อลูกค้า"] ?? "").trim() || "ไม่ระบุ",
-    customerType: /ลูกค้าเก่า|เก่า/.test(String(seen)) ? "เก่า" : "ใหม่",
+    customerName: String(row["ชื่อลูกค้า"] ?? "").trim() || "N/A",
+    customerType: /ลูกค้าเก่า|เก่า/.test(String(seen)) ? "Returning" : "New",
     quotedRevenue: quoted,
     revenue: isClosed ? actual : 0,
     orders: isClosed ? 1 : 0,
@@ -116,10 +116,10 @@ function normalizeStk(row, idx) {
     year,
     month,
     day: 1, // STK ระดับเดือน ไม่มีวันแยก
-    sku: "สติกเกอร์",
+    sku: "Sticker",
     channel: parseChannel(channelRaw),
-    customerName: customerName || "ไม่ระบุ",
-    customerType: "ใหม่",
+    customerName: customerName || "N/A",
+    customerType: "New",
     quotedRevenue: amount,
     revenue: isClosed ? amount : 0,
     orders: isClosed ? 1 : 0,
@@ -132,10 +132,10 @@ function normalizeStk(row, idx) {
 
 export async function fetchRows() {
   if (!SHEET_API_URL) {
-    throw new Error("ยังไม่ได้ตั้งค่า SHEET_API_URL — ดู README / src/config/dataSource.js");
+    throw new Error("SHEET_API_URL is not set — see README / src/config/dataSource.js");
   }
   const res = await fetch(`${SHEET_API_URL}?t=${Date.now()}`, { method: "GET", redirect: "follow" });
-  if (!res.ok) throw new Error(`โหลดข้อมูลไม่สำเร็จ (HTTP ${res.status})`);
+  if (!res.ok) throw new Error(`Failed to load data (HTTP ${res.status})`);
 
   const data = await res.json();
   if (data.error) throw new Error(`Apps Script error: ${data.error}`);

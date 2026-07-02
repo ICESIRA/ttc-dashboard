@@ -63,7 +63,7 @@ export default function OfferVsSalesPanel({ rows }) {
     for (const r of rows) {
       if (r.year !== year || monthIndex(r.month) !== mi) continue;
       const w = weekOf(r.day && r.day >= 1 ? r.day : 1);
-      const sku = r.sku || "อื่นๆ";
+      const sku = r.sku || "Others";
       skuSet.add(sku);
       if (!weeks[w]) weeks[w] = {};
       if (!weeks[w][sku]) weeks[w][sku] = { quoted: 0, revenue: 0 };
@@ -86,15 +86,15 @@ export default function OfferVsSalesPanel({ rows }) {
             padding: "14px 16px", boxShadow: "0 10px 28px rgba(0,0,0,0.18)",
           }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-              <span style={{ fontSize: 15, fontWeight: 700, color: "var(--text-heading)" }}>ratio คืออะไร</span>
+              <span style={{ fontSize: 15, fontWeight: 700, color: "var(--text-heading)" }}>What is ratio?</span>
               <span onClick={() => setShowRatioInfo(false)} style={{ cursor: "pointer", color: "var(--text-faint)", fontSize: 16, lineHeight: 1 }}>✕</span>
             </div>
             <div style={{ fontSize: 13.5, color: "var(--text-body)", lineHeight: 1.7 }}>
-              <b style={{ color: ACCENT }}>อัตราปิดการขาย (Close Rate)</b><br />
-              = ยอดขาย ÷ ยอดเสนอ × 100<br />
-              บอกว่าจากยอดที่เสนอราคาไป ปิดเป็นยอดขายจริงได้กี่ %
+              <b style={{ color: ACCENT }}>Close Rate</b><br />
+              = Sales ÷ Quoted × 100<br />
+              Shows what % of the quoted amount closed into actual sales
               <div style={{ marginTop: 8, fontSize: 12, color: "var(--text-faint)" }}>
-                สี: ≥50% เขียว · ≥25% เหลือง · ต่ำกว่านั้นสีจาง
+                Color: ≥50% green · ≥25% amber · lower = faint
               </div>
             </div>
           </div>
@@ -105,10 +105,10 @@ export default function OfferVsSalesPanel({ rows }) {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 10, marginBottom: 14 }}>
         <div>
           <div style={{ fontSize: 17, color: "var(--text-heading)", fontWeight: 700 }}>
-            ยอดเสนอ vs ยอดขาย — รายสัปดาห์
+            Quoted vs Sales — Weekly
           </div>
           <div style={{ fontSize: 13, color: "var(--text-faint)", marginTop: 2 }}>
-            แยกตามกลุ่มสินค้า · แต่ละสัปดาห์โชว์ ยอดเสนอ / ยอดขาย / ratio (อัตราปิด)
+            By product group · each week shows Quoted / Sales / ratio (close rate)
           </div>
         </div>
         <select
@@ -126,7 +126,7 @@ export default function OfferVsSalesPanel({ rows }) {
       </div>
 
       {!monthData && (
-        <div style={{ fontSize: 14, color: "var(--text-faint)", padding: "20px 0" }}>ไม่มีข้อมูล</div>
+        <div style={{ fontSize: 14, color: "var(--text-faint)", padding: "20px 0" }}>No data</div>
       )}
 
       {monthData && (
@@ -161,10 +161,10 @@ export default function OfferVsSalesPanel({ rows }) {
                     <thead>
                       <tr style={{ color: "var(--text-faint)" }}>
                         <th style={{ ...thTd, textAlign: "left", width: "34%" }}>SKU</th>
-                        <th style={{ ...thTd, textAlign: "right" }}>เสนอ</th>
-                        <th style={{ ...thTd, textAlign: "right" }}>ขาย</th>
+                        <th style={{ ...thTd, textAlign: "right" }}>Quoted</th>
+                        <th style={{ ...thTd, textAlign: "right" }}>Sales</th>
                         <th onClick={() => setShowRatioInfo(true)}
-                          title="อัตราปิดการขาย = ยอดขาย ÷ ยอดเสนอ × 100 (คลิกดูรายละเอียด)"
+                          title="Close rate = Sales ÷ Quoted × 100 (click for details)"
                           style={{ ...thTd, textAlign: "right", width: "22%", cursor: "pointer", color: ACCENT, textDecoration: "underline dotted", userSelect: "none" }}>
                           ratio ⓘ
                         </th>
@@ -185,7 +185,7 @@ export default function OfferVsSalesPanel({ rows }) {
                       })}
                       {/* แถวรวม */}
                       <tr style={{ borderTop: "2px solid var(--border-default)", background: "var(--bg-page)" }}>
-                        <td style={{ ...thTd, textAlign: "left", fontWeight: 700, color: "var(--text-heading)" }}>รวม</td>
+                        <td style={{ ...thTd, textAlign: "left", fontWeight: 700, color: "var(--text-heading)" }}>Total</td>
                         <td style={{ ...thTd, textAlign: "right", fontWeight: 700, fontFamily: mono, color: "var(--text-muted)" }}>{fmtNum(totQ)}</td>
                         <td style={{ ...thTd, textAlign: "right", fontWeight: 700, fontFamily: mono, color: ACCENT }}>{fmtNum(totR)}</td>
                         <td style={{ ...thTd, textAlign: "right", fontWeight: 700, fontFamily: mono, color: ratioColor(totRatio) }}>{totRatio.toFixed(0)}%</td>

@@ -14,24 +14,24 @@ export default function TopCustomerTable({ topCustomers, allFiltered }) {
   return (
     <div style={{ ...cardStyle, flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}>
-        <div style={{ fontSize: 14, color: "var(--text-dim)" }}>ลูกค้า Top 10</div>
+        <div style={{ fontSize: 14, color: "var(--text-dim)" }}>Top 10 Customers</div>
         <div style={{ fontSize: 12, color: "var(--text-faint)", fontFamily: "'Space Mono'" }}>
-          {overall > 0 ? `${((topTotal / overall) * 100).toFixed(0)}% ของยอดรวม` : ""}
+          {overall > 0 ? `${((topTotal / overall) * 100).toFixed(0)}% of total` : ""}
         </div>
       </div>
-      <div style={{ fontSize: 12, color: "var(--text-faint)", marginBottom: 10 }}>เรียงตามยอดขายรวม · กระทบตาม filter ปัจจุบัน</div>
+      <div style={{ fontSize: 12, color: "var(--text-faint)", marginBottom: 10 }}>Sorted by total sales · reflects current filters</div>
 
       {topCustomers.length === 0 ? (
-        <div style={{ fontSize: 13, color: "var(--text-faint)", padding: "20px 0", textAlign: "center" }}>ไม่มีข้อมูลในช่วงที่เลือก</div>
+        <div style={{ fontSize: 13, color: "var(--text-faint)", padding: "20px 0", textAlign: "center" }}>No data in the selected range</div>
       ) : (
         <div style={{ flex: 1, minHeight: 200, overflowY: "auto", paddingRight: 4 }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
             <thead style={{ position: "sticky", top: 0, background: "var(--bg-card)", zIndex: 1 }}>
               <tr style={{ borderBottom: "1px solid var(--border-subtle)" }}>
                 <th style={{ padding: "6px 4px", textAlign: "left", color: "var(--text-faint)", fontWeight: 500, width: 28 }}>#</th>
-                <th style={{ padding: "6px 4px", textAlign: "left", color: "var(--text-faint)", fontWeight: 500 }}>ชื่อลูกค้า</th>
-                <th style={{ padding: "6px 4px", textAlign: "right", color: "var(--text-faint)", fontWeight: 500 }}>ยอดขาย</th>
-                <th style={{ padding: "6px 4px", textAlign: "right", color: "var(--text-faint)", fontWeight: 500, width: 60 }}>ออเดอร์</th>
+                <th style={{ padding: "6px 4px", textAlign: "left", color: "var(--text-faint)", fontWeight: 500 }}>Customer</th>
+                <th style={{ padding: "6px 4px", textAlign: "right", color: "var(--text-faint)", fontWeight: 500 }}>Sales</th>
+                <th style={{ padding: "6px 4px", textAlign: "right", color: "var(--text-faint)", fontWeight: 500, width: 60 }}>Orders</th>
               </tr>
             </thead>
             <tbody>

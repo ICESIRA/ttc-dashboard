@@ -69,13 +69,13 @@ export function computeTopCustomers(rows, limit = 10) {
     .slice(0, limit);
 }
 
-// ─── สัดส่วนลูกค้าใหม่ vs เก่า ───
+// ─── New vs Returning customer mix ───
 export function computeCustomerMix(rows) {
-  const newRev = sum(rows.filter((r) => r.customerType === "ใหม่"), "revenue");
-  const oldRev = sum(rows.filter((r) => r.customerType === "เก่า"), "revenue");
+  const newRev = sum(rows.filter((r) => r.customerType === "New"), "revenue");
+  const oldRev = sum(rows.filter((r) => r.customerType === "Returning"), "revenue");
   return [
-    { name: "ใหม่", value: newRev, color: "#3b82f6" },
-    { name: "เก่า", value: oldRev, color: "#f59e0b" },
+    { name: "New", value: newRev, color: "#3b82f6" },
+    { name: "Returning", value: oldRev, color: "#f59e0b" },
   ];
 }
 

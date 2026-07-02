@@ -12,15 +12,15 @@ export default function SkuChannelHeatmap({
 }) {
   return (
     <div style={cardStyle}>
-      <div style={{ fontSize: 14, color: "var(--text-dim)", marginBottom: 4 }}>ยอดขายต่อ SKU × ช่องทาง (Heatmap)</div>
-      <div style={{ fontSize: 12, color: "var(--text-faint)", marginBottom: 14 }}>เพื่อดูว่า SKU แต่ละตัวขายดีช่องทางไหน</div>
+      <div style={{ fontSize: 14, color: "var(--text-dim)", marginBottom: 4 }}>Sales by SKU × Channel (Heatmap)</div>
+      <div style={{ fontSize: 12, color: "var(--text-faint)", marginBottom: 14 }}>See which channel each SKU sells best in</div>
       <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
           <thead>
             <tr>
               <th style={{ padding: "6px 8px", color: "var(--text-faint)", textAlign: "left" }}>SKU</th>
               {CHANNELS.map((ch) => <th key={ch} style={{ padding: "6px 8px", color: CH_COLOR[ch], fontWeight: 500, textAlign: "center" }}>{ch}</th>)}
-              <th style={{ padding: "6px 8px", color: "var(--text-dim)", textAlign: "center" }}>รวม</th>
+              <th style={{ padding: "6px 8px", color: "var(--text-dim)", textAlign: "center" }}>Total</th>
             </tr>
           </thead>
           <tbody>

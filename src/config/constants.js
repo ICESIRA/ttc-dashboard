@@ -1,13 +1,13 @@
 // ─────────────────────────────────────────────────────────────
-// constants.js — ค่าคงที่ของ dashboard (SKU, ช่องทาง, เดือน, สี)
-// แก้ที่นี่ที่เดียวถ้า business เปลี่ยน SKU / ช่องทาง / สี
+// constants.js — dashboard constants (SKU, channels, months, colors)
+// Edit here only if the business changes SKU / channel / colors
 // ─────────────────────────────────────────────────────────────
 
-// SKU 3 กลุ่มใหญ่ (จัดกลุ่มจากข้อมูลจริง 2 tab)
+// 3 main SKU groups (grouped from the 2 real data tabs)
 export const SKUS = [
-  "กล่อง STD",
-  "กล่อง Custom",
-  "สติกเกอร์",
+  "Box STD",
+  "Box Custom",
+  "Sticker",
 ];
 
 export const CHANNELS = [
@@ -18,43 +18,43 @@ export const CHANNELS = [
   "TikTok Shop",
   "Instagram",
   "Website",
-  "อื่นๆ",
+  "Others",
 ];
 
 export const MONTHS = [
-  "ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.",
-  "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค.",
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
 ];
 
-// ปีจะถูกดึงจากข้อมูลจริง (ดู getYearsFromRows) — ไม่ fix ตายตัว
+// Year is derived from real data (see getYearsFromRows) — not hardcoded
 export const CURRENT_YEAR = new Date().getFullYear() + 543 > 2500
-  ? new Date().getFullYear() // ใช้ ค.ศ. (ข้อมูลในชีตเก็บเป็น ค.ศ.)
+  ? new Date().getFullYear() // use A.D. (sheet stores years in A.D.)
   : new Date().getFullYear();
 
-// คืนรายการปีที่มีจริงในข้อมูล (เรียงน้อย→มาก) — ใช้กับ filter ปี (ข้อ 4)
+// Return the list of years present in the data (ascending)
 export function getYearsFromRows(rows) {
   const set = new Set(rows.map((r) => r.year).filter(Boolean));
   return [...set].sort((a, b) => a - b);
 }
 
-// แปลงชื่อเดือนย่อ → index 0-11
+// Month abbreviation → index 0-11
 export const monthIndex = (m) => MONTHS.indexOf(m);
 
 export const DAYS_IN_MONTH = {
-  "ม.ค.": 31, "ก.พ.": 28, "มี.ค.": 31, "เม.ย.": 30,
-  "พ.ค.": 31, "มิ.ย.": 30, "ก.ค.": 31, "ส.ค.": 31,
-  "ก.ย.": 30, "ต.ค.": 31, "พ.ย.": 30, "ธ.ค.": 31,
+  Jan: 31, Feb: 28, Mar: 31, Apr: 30,
+  May: 31, Jun: 30, Jul: 31, Aug: 31,
+  Sep: 30, Oct: 31, Nov: 30, Dec: 31,
 };
 
-// สี SKU (3 กลุ่ม + fallback)
+// SKU colors (3 groups + fallback)
 export const PALETTE = {
-  "กล่อง STD": "#3b82f6",
-  "กล่อง Custom": "#f59e0b",
-  "สติกเกอร์": "#10b981",
-  "อื่นๆ": "#64748b",
+  "Box STD": "#3b82f6",
+  "Box Custom": "#f59e0b",
+  "Sticker": "#10b981",
+  "Others": "#64748b",
 };
 
-// สีช่องทางขาย
+// Sales channel colors
 export const CH_COLOR = {
   Shopee: "#f97316",
   Lazada: "#8b5cf6",
@@ -63,10 +63,10 @@ export const CH_COLOR = {
   "TikTok Shop": "#ec4899",
   Instagram: "#d946ef",
   Website: "#06b6d4",
-  "อื่นๆ": "#94a3b8",
+  "Others": "#94a3b8",
 };
 
 export const ACCENT = "var(--accent)";
 
-// auto-refresh ทุกกี่ ms (30 วินาที)
+// auto-refresh interval in ms (30 seconds)
 export const REFRESH_INTERVAL_MS = 30_000;

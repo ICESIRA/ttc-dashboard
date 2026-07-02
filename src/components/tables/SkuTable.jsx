@@ -7,14 +7,14 @@ import { PALETTE } from "../../config/constants.js";
 import { fmtB, fmtDec } from "../../lib/format.js";
 import { cardStyle } from "../ui.js";
 
-const HEADERS = ["อันดับ", "กลุ่มสินค้า", "ยอดเสนอ", "ยอดขาย (ปิดได้)", "ออเดอร์", "อัตราปิด"];
+const HEADERS = ["Rank", "Product", "Quoted", "Sales (closed)", "Orders", "Close rate"];
 
 const closeColor = (c) => (c > 50 ? "#10b981" : c > 30 ? "#f59e0b" : "#f87171");
 
 export default function SkuTable({ skuData, activeSku, onToggleSku }) {
   return (
     <div style={{ ...cardStyle, overflowX: "auto" }}>
-      <div style={{ fontSize: 16, color: "var(--text-dim)", fontWeight: 600, marginBottom: 12 }}>ตารางกลุ่มสินค้า (เรียงตามยอดขาย)</div>
+      <div style={{ fontSize: 16, color: "var(--text-dim)", fontWeight: 600, marginBottom: 12 }}>Product groups (sorted by sales)</div>
       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 15 }}>
         <thead>
           <tr style={{ borderBottom: "1px solid var(--border-subtle)" }}>

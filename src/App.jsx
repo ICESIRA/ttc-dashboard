@@ -40,7 +40,7 @@ export default function App() {
             width: 48, height: 48, border: "4px solid var(--border-default)",
             borderTopColor: "var(--accent)", borderRadius: "50%", animation: "spin 1s linear infinite",
           }} />
-          <div style={{ fontSize: 18, fontWeight: 600 }}>กำลังโหลด Dashboard...</div>
+          <div style={{ fontSize: 18, fontWeight: 600 }}>Loading Dashboard...</div>
           <div style={{ fontSize: 13, color: "var(--text-dim)" }}>TTC Factory</div>
           <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         </Center>
@@ -55,11 +55,11 @@ export default function App() {
         <ThemeStyle mode={theme} />
         <Center>
           <div style={{ fontSize: 40 }}>⚠️</div>
-          <div style={{ fontSize: 18, fontWeight: 600 }}>โหลดข้อมูลไม่สำเร็จ</div>
+          <div style={{ fontSize: 18, fontWeight: 600 }}>Failed to load data</div>
           <div style={{ fontSize: 14, color: "var(--text-dim)", maxWidth: 420, textAlign: "center" }}>{error}</div>
           <button onClick={refresh}
             style={{ marginTop: 8, background: "var(--accent)", color: "#fff", border: "none", padding: "10px 24px", borderRadius: 8, cursor: "pointer", fontSize: 14, fontWeight: 600 }}>
-            ลองใหม่
+            Retry
           </button>
         </Center>
       </>

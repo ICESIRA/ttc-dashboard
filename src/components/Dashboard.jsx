@@ -48,15 +48,10 @@ export default function Dashboard({ rows, adSpendDaily, theme, onToggleTheme, er
   const { data: metaData } = useMetaData(metaSince, metaUntil);
   const metaSpend = metaData && metaData.kpi ? metaData.kpi.spend : 0;
 
-  // ตั้งค่าเริ่มต้นครั้งแรกที่ข้อมูลมา — "เดือนล่าสุดที่มีข้อมูลจริง"
-  // (ไม่ใช้ "เดือนนี้" เพราะถ้าวันนี้เป็นต้นเดือนที่ยังไม่มีข้อมูล จะเห็นตารางว่าง)
+  // ค่าเริ่มต้น: 30 วันล่าสุด (อัตโนมัติ)
   useEffect(() => {
     if (didInit || rows.length === 0) return;
-    const latest = latestDataDate(rows); // วันล่าสุดที่มีข้อมูลในชีต
-    setRange({
-      start: new Date(latest.getFullYear(), latest.getMonth(), 1), // วันที่ 1 ของเดือนล่าสุด
-      end: latest,
-    });
+    setRange(presetRange("last30", rows));
     setDidInit(true);
   }, [rows, didInit]);
 
@@ -118,7 +113,7 @@ export default function Dashboard({ rows, adSpendDaily, theme, onToggleTheme, er
       const cur = agg(filterByRange(filteredBase, range.start, range.end));
       const prev = agg(filterByRange(filteredBase, compareRange.start, compareRange.end));
       return {
-        label: `เทียบช่วงที่เลือก`,
+        label: `vs compare period`,
         quoted: pct(cur.quoted, prev.quoted), revenue: pct(cur.revenue, prev.revenue),
         orders: pct(cur.orders, prev.orders), qaCount: pct(cur.qaCount, prev.qaCount),
       };
@@ -157,7 +152,7 @@ export default function Dashboard({ rows, adSpendDaily, theme, onToggleTheme, er
             )}
             {rows.length > 0 && (
               <div style={{ fontSize: 13, color: "var(--text-faint)", textAlign: "right" }}>
-                📊 ข้อมูลจากตารางอัปเดตล่าสุดถึงวันที่ {dateToISO(latestDataDate(rows))}
+                📊 Data updated through {dateToISO(latestDataDate(rows))}
               </div>
             )}
           </div>
@@ -166,23 +161,23 @@ export default function Dashboard({ rows, adSpendDaily, theme, onToggleTheme, er
 
       {/* KPI row 1 */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 12 }}>
-        <KPICard label="ยอดขายเสนอ" value={fmtParts(kpi.quoted, "บาท")} sub="Pipeline / Quote ทั้งหมด" color="var(--text-muted)" delta={d("quoted")} />
-        <KPICard label="ยอดขาย (ปิดได้)" value={fmtParts(kpi.revenue, "บาท")} sub={`อัตราปิด ${fmtDec(closeOfQuote, 1)}% ของยอดเสนอ`} color={ACCENT} delta={d("revenue")} />
-        <KPICard label="AOV" value={fmtParts(kpi.aov, "บาท")} sub="ค่าเฉลี่ยต่อออเดอร์" color="#10b981" />
-        <KPICard label="เฉลี่ย 1 คนซื้อ" value={{ num: fmtDec(kpi.avgPurchase, 2), unit: "ครั้ง/คน" }} sub={`${fmtNum(kpi.customers)} ลูกค้า · ${fmtNum(kpi.orders)} ออเดอร์`} color="#a78bfa" />
+        <KPICard label="Quoted Sales" value={fmtParts(kpi.quoted, "Baht")} sub="Total pipeline / quotes" color="var(--text-muted)" delta={d("quoted")} />
+        <KPICard label="Sales (closed)" value={fmtParts(kpi.revenue, "Baht")} sub={`Close rate ${fmtDec(closeOfQuote, 1)}% of quoted`} color={ACCENT} delta={d("revenue")} />
+        <KPICard label="AOV" value={fmtParts(kpi.aov, "Baht")} sub="Average per order" color="#10b981" />
+        <KPICard label="Purchases / customer" value={{ num: fmtDec(kpi.avgPurchase, 2), unit: "times/customer" }} sub={`${fmtNum(kpi.customers)} customers · ${fmtNum(kpi.orders)} orders`} color="#a78bfa" />
       </div>
 
       {/* KPI row 2 */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 20 }}>
-        <KPICard label="Count QA" value={fmtParts(kpi.qaCount, "")} sub="Lead / Inquiry ทั้งหมด" color="var(--text-dim)" delta={d("qaCount")} />
-        <KPICard label="Total Orders" value={fmtParts(kpi.orders, "")} sub="ออเดอร์ที่ปิดได้" color="#3b82f6" delta={d("orders")} />
-        <KPICard label="% Close Rate (จาก QA)" value={`${fmtDec(kpi.closeRate, 1)}%`} sub={`${fmtNum(kpi.orders)} ÷ ${fmtNum(kpi.qaCount)} QA`} color={kpi.closeRate > 25 ? "#10b981" : kpi.closeRate > 15 ? "#f59e0b" : "#f87171"} />
-        <KPICard label="ค่าโฆษณา (Ad Spend)" value={fmtParts(kpi.adSpend, "บาท")} sub={kpi.adSpend > 0 ? (kpi.adSpendSource === "meta" ? `ค่าแอดจริงจาก Meta · ROAS ${fmtDec(kpi.roas, 2)}x` : `ROAS ${fmtDec(kpi.roas, 2)}x · ยอดขาย ÷ ค่าแอด`) : "ยังไม่มีข้อมูลค่าแอดในช่วงนี้"} color="#fb923c" />
+        <KPICard label="Count QA" value={fmtParts(kpi.qaCount, "")} sub="Total leads / inquiries" color="var(--text-dim)" delta={d("qaCount")} />
+        <KPICard label="Total Orders" value={fmtParts(kpi.orders, "")} sub="Closed orders" color="#3b82f6" delta={d("orders")} />
+        <KPICard label="% Close Rate (from QA)" value={`${fmtDec(kpi.closeRate, 1)}%`} sub={`${fmtNum(kpi.orders)} ÷ ${fmtNum(kpi.qaCount)} QA`} color={kpi.closeRate > 25 ? "#10b981" : kpi.closeRate > 15 ? "#f59e0b" : "#f87171"} />
+        <KPICard label="Ad Spend" value={fmtParts(kpi.adSpend, "Baht")} sub={kpi.adSpend > 0 ? (kpi.adSpendSource === "meta" ? `Real spend from Meta · ROAS ${fmtDec(kpi.roas, 2)}x` : `ROAS ${fmtDec(kpi.roas, 2)}x · Sales ÷ Spend`) : "No ad spend data for this range"} color="#fb923c" />
       </div>
 
       {/* ยอดเสนอ vs ยอดขาย */}
       <div style={{ marginBottom: 20 }}>
-        <OfferVsSalesPanel rows={rows} />
+        <OfferVsSalesPanel rows={filtered} />
       </div>
 
       {/* SKU bar + customer mix + top customers */}

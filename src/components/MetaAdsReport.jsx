@@ -15,21 +15,21 @@ import { tooltipProps, cardStyle } from "./ui.js";
 import { useMetaData } from "../data/useMetaData.js";
 
 const DAILY_METRICS = [
-  { id: "messages", label: "ข้อความ", color: "#7c5cff" },
+  { id: "messages", label: "Messages", color: "#7c5cff" },
   { id: "leadform", label: "Leadform", color: "#2f6bff" },
   { id: "reach", label: "Reach", color: "#0bb5c9" },
 ];
 // เมตริกที่เลือกได้สำหรับกราฟแท่ง/เส้น (รวมงบด้วย)
 const CHART_METRICS = [
-  { id: "messages", label: "ข้อความ", color: "#7c5cff" },
+  { id: "messages", label: "Messages", color: "#7c5cff" },
   { id: "leadform", label: "Leadform", color: "#2f6bff" },
   { id: "reach", label: "Reach", color: "#0bb5c9" },
-  { id: "spend", label: "งบที่ใช้", color: "#d99514" },
+  { id: "spend", label: "Spend", color: "#d99514" },
 ];
 const BREAKDOWN_DIMS = [
-  { id: "gender", label: "แบ่งตามเพศ" },
-  { id: "age", label: "แบ่งตามอายุ" },
-  { id: "province", label: "แบ่งตามจังหวัด" },
+  { id: "gender", label: "By gender" },
+  { id: "age", label: "By age" },
+  { id: "province", label: "By province" },
 ];
 
 function SegToggle({ options, value, onChange }) {
@@ -75,7 +75,7 @@ function MetaKpiCard({ label, value, unit, delta }) {
       {delta !== undefined && delta !== null && (
         <div style={{ fontSize: 14, fontWeight: 600, color: up ? "#16a34a" : "#ef4444", display: "flex", alignItems: "center", gap: 4 }}>
           <span>{up ? "▲" : "▼"} {Math.abs(delta).toFixed(1)}%</span>
-          <span style={{ color: "var(--text-faint)", fontWeight: 400 }}>vs เดือนก่อน</span>
+          <span style={{ color: "var(--text-faint)", fontWeight: 400 }}>vs prev month</span>
         </div>
       )}
     </div>
@@ -146,8 +146,8 @@ export default function MetaAdsReport({ since, until }) {
           border: "4px solid var(--border-default)", borderTopColor: "#2f6bff",
           animation: "metaspin 1s linear infinite",
         }} />
-        <div style={{ fontSize: 16, fontWeight: 600, color: "var(--text-heading)" }}>กำลังดึงข้อมูล Meta Ads...</div>
-        <div style={{ fontSize: 13, color: "var(--text-faint)", marginTop: 4 }}>เชื่อมต่อ Meta แบบเรียลไทม์</div>
+        <div style={{ fontSize: 16, fontWeight: 600, color: "var(--text-heading)" }}>Loading Meta Ads...</div>
+        <div style={{ fontSize: 13, color: "var(--text-faint)", marginTop: 4 }}>Connecting to Meta in real time</div>
         <style>{`@keyframes metaspin { to { transform: rotate(360deg); } }`}</style>
       </div>
     );
@@ -158,12 +158,12 @@ export default function MetaAdsReport({ since, until }) {
     return (
       <div style={{ ...cardStyle, marginTop: 30, padding: "48px 20px", textAlign: "center" }}>
         <div style={{ fontSize: 36, marginBottom: 10 }}>⚠️</div>
-        <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text-heading)" }}>ดึงข้อมูล Meta ไม่ได้</div>
+        <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text-heading)" }}>Couldn't load Meta data</div>
         <div style={{ fontSize: 13, color: "var(--text-faint)", marginTop: 6, maxWidth: 460, marginLeft: "auto", marginRight: "auto" }}>
-          {error || "ไม่พบข้อมูลจาก Meta"}
+          {error || "No data from Meta"}
         </div>
         <div style={{ fontSize: 12, color: "var(--text-faint)", marginTop: 10 }}>
-          ลองรีเฟรชหน้าใหม่ หรือตรวจสอบการเชื่อมต่อ Meta
+          Try refreshing the page or check the Meta connection
         </div>
       </div>
     );
@@ -196,11 +196,11 @@ export default function MetaAdsReport({ since, until }) {
       <div style={{ ...cardStyle, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
         <div>
           <div style={{ fontSize: 13, color: "#2f6bff", letterSpacing: 1.5, textTransform: "uppercase", fontWeight: 700 }}>
-            META ADS · รายงานผลโฆษณา
+            META ADS · Performance Report
           </div>
           <div style={{ fontSize: 22, fontWeight: 700, color: "var(--text-heading)", marginTop: 3 }}>{meta.account}</div>
           <div style={{ fontSize: 14, color: "var(--text-faint)", marginTop: 2 }}>
-            {meta.dateStart} → {meta.dateStop} · สกุลเงิน {meta.currency}
+            {meta.dateStart} → {meta.dateStop} · Currency {meta.currency}
           </div>
         </div>
         <div style={{
@@ -209,30 +209,30 @@ export default function MetaAdsReport({ since, until }) {
           color: meta.source === "live" ? "#16a34a" : "#b8860b", fontSize: 13, fontWeight: 600,
         }}>
           <span style={{ width: 8, height: 8, borderRadius: "50%", background: meta.source === "live" ? "#16a34a" : "#d99514" }} />
-          {meta.source === "live" ? "ข้อมูลสด" : `snapshot · ดึง ${meta.pulledAt}`}
+          {meta.source === "live" ? "Live data" : `snapshot · fetched ${meta.pulledAt}`}
         </div>
       </div>
 
       {/* 1. KPI 4 การ์ด */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 18 }}>
-        <MetaKpiCard label="งบที่ใช้ (Spend)" value={fmtNum(kpi.spend)} unit="บาท" delta={kpi.deltaSpend} />
-        <MetaKpiCard label="ต้นทุนต่อข้อความ" value={fmtDec(kpi.costPerResult, 2)} unit="บาท" delta={kpi.deltaCostPerResult} />
-        <MetaKpiCard label="จำนวนข้อความ" value={fmtNum(kpi.results)} delta={kpi.deltaResults} />
-        <MetaKpiCard label="การเข้าถึง (Reach)" value={fmtNum(kpi.reach)} delta={kpi.deltaReach} />
+        <MetaKpiCard label="Spend" value={fmtNum(kpi.spend)} unit="Baht" delta={kpi.deltaSpend} />
+        <MetaKpiCard label="Cost per message" value={fmtDec(kpi.costPerResult, 2)} unit="Baht" delta={kpi.deltaCostPerResult} />
+        <MetaKpiCard label="Messages" value={fmtNum(kpi.results)} delta={kpi.deltaResults} />
+        <MetaKpiCard label="Reach" value={fmtNum(kpi.reach)} delta={kpi.deltaReach} />
       </div>
 
       {/* 2. กราฟรายวัน + Funnel */}
       <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr", gap: 18 }}>
         <div style={cardStyle}>
           <div style={{ marginBottom: 12 }}>
-            <div style={{ fontSize: 17, color: "var(--text-heading)", fontWeight: 700 }}>ผลลัพธ์ รายวัน</div>
+            <div style={{ fontSize: 17, color: "var(--text-heading)", fontWeight: 700 }}>Daily results</div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 16, marginTop: 10 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ fontSize: 12, color: "var(--text-faint)", fontWeight: 600 }}>แท่ง:</span>
+                <span style={{ fontSize: 12, color: "var(--text-faint)", fontWeight: 600 }}>Bar:</span>
                 <SegToggle options={chartMetrics} value={safeBarId} onChange={setDailyMetric} />
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ fontSize: 12, color: "var(--text-faint)", fontWeight: 600 }}>เส้น:</span>
+                <span style={{ fontSize: 12, color: "var(--text-faint)", fontWeight: 600 }}>Line:</span>
                 <SegToggle options={chartMetrics} value={safeLineId} onChange={setLineMetric} />
               </div>
             </div>
@@ -247,7 +247,7 @@ export default function MetaAdsReport({ since, until }) {
                 formatter={(v, n) => {
                   const m = CHART_METRICS.find((x) => x.id === n);
                   const isMoney = n === "spend";
-                  return [isMoney ? `${fmtNum(v)} บาท` : fmtNum(v), m ? m.label : n];
+                  return [isMoney ? `${fmtNum(v)} Baht` : fmtNum(v), m ? m.label : n];
                 }} />
               <Legend wrapperStyle={{ fontSize: 13 }}
                 formatter={(v) => {
@@ -261,15 +261,15 @@ export default function MetaAdsReport({ since, until }) {
         </div>
 
         <div style={cardStyle}>
-          <div style={{ fontSize: 17, color: "var(--text-heading)", fontWeight: 700 }}>เส้นทางลูกค้า (Funnel)</div>
+          <div style={{ fontSize: 17, color: "var(--text-heading)", fontWeight: 700 }}>Customer journey (Funnel)</div>
           <div style={{ fontSize: 13, color: "var(--text-faint)", marginTop: 2, marginBottom: 14 }}>
-            จากเห็นโฆษณา → ติดต่อ → ปิดการขาย
+            From impression → contact → close
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            <FunnelRow label="การเข้าถึง (Reach)" value={fmtNum(funnel.reach)} pct={100} color="#2f6bff" />
-            <FunnelRow label="คลิก / มีส่วนร่วม" sublabel={`CTR ${fmtDec(funnel.ctr, 1)}%`} value={fmtNum(funnel.clicks)} pct={Math.min(100, (funnel.clicks / funnel.reach) * 100 * 8)} color="#0bb5c9" />
-            <FunnelRow label="ทักแชท / Leadform" value={`${fmtNum(funnel.results)} ข้อความ`} pct={Math.min(100, (funnel.results / funnel.clicks) * 100 * 1.5)} color="#7c5cff" />
-            <FunnelRow label="ต้นทุน/ข้อความ" value={`${fmtDec(funnel.costPerResult, 2)} บาท`} pct={42} color="#d99514" />
+            <FunnelRow label="Reach" value={fmtNum(funnel.reach)} pct={100} color="#2f6bff" />
+            <FunnelRow label="Clicks / engagement" sublabel={`CTR ${fmtDec(funnel.ctr, 1)}%`} value={fmtNum(funnel.clicks)} pct={Math.min(100, (funnel.clicks / funnel.reach) * 100 * 8)} color="#0bb5c9" />
+            <FunnelRow label="Messages / Leadform" value={`${fmtNum(funnel.results)} messages`} pct={Math.min(100, (funnel.results / funnel.clicks) * 100 * 1.5)} color="#7c5cff" />
+            <FunnelRow label="Cost / message" value={`${fmtDec(funnel.costPerResult, 2)} Baht`} pct={42} color="#d99514" />
           </div>
         </div>
       </div>
@@ -279,8 +279,8 @@ export default function MetaAdsReport({ since, until }) {
         <div style={cardStyle}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 10, marginBottom: 8 }}>
             <div>
-              <div style={{ fontSize: 17, color: "var(--text-heading)", fontWeight: 700 }}>สัดส่วนงบ</div>
-              <div style={{ fontSize: 13, color: "var(--text-faint)", marginTop: 2 }}>แบ่งงบตามมิติที่เลือก</div>
+              <div style={{ fontSize: 17, color: "var(--text-heading)", fontWeight: 700 }}>Budget split</div>
+              <div style={{ fontSize: 13, color: "var(--text-faint)", marginTop: 2 }}>Budget by selected dimension</div>
             </div>
             <SegToggle options={BREAKDOWN_DIMS} value={breakdownDim} onChange={setBreakdownDim} />
           </div>
@@ -289,7 +289,7 @@ export default function MetaAdsReport({ since, until }) {
               <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={58} outerRadius={92} paddingAngle={2}>
                 {pieData.map((e, i) => <Cell key={i} fill={e.color} stroke="var(--bg-card)" strokeWidth={2} />)}
               </Pie>
-              <Tooltip {...tooltipProps} formatter={(v) => [`${fmtNum(v)} บาท`, "งบ"]} />
+              <Tooltip {...tooltipProps} formatter={(v) => [`${fmtNum(v)} Baht`, "Budget"]} />
               <Legend wrapperStyle={{ fontSize: 13 }} />
             </PieChart>
           </ResponsiveContainer>
@@ -298,8 +298,8 @@ export default function MetaAdsReport({ since, until }) {
         <div style={cardStyle}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 10, marginBottom: 8 }}>
             <div>
-              <div style={{ fontSize: 17, color: "var(--text-heading)", fontWeight: 700 }}>ผลลัพธ์ตามกลุ่มอายุ & เพศ</div>
-              <div style={{ fontSize: 13, color: "var(--text-faint)", marginTop: 2 }}>กลุ่มไหนได้ผลที่สุด</div>
+              <div style={{ fontSize: 17, color: "var(--text-heading)", fontWeight: 700 }}>Results by age & gender</div>
+              <div style={{ fontSize: 13, color: "var(--text-faint)", marginTop: 2 }}>Which group performs best</div>
             </div>
             <SegToggle options={dailyMetricsFiltered} value={safeAgeId} onChange={setAgeMetric} />
           </div>
@@ -308,8 +308,8 @@ export default function MetaAdsReport({ since, until }) {
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" vertical={false} />
               <XAxis dataKey="age" tick={{ fill: "var(--text-dim)", fontSize: 12 }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fill: "var(--text-faint)", fontSize: 12 }} axisLine={false} tickLine={false} tickFormatter={fmt} width={48} />
-              <Tooltip {...tooltipProps} formatter={(v, n) => [fmtNum(v), n === "female" ? "หญิง" : "ชาย"]} />
-              <Legend wrapperStyle={{ fontSize: 13 }} formatter={(v) => (v === "female" ? "หญิง" : "ชาย")} />
+              <Tooltip {...tooltipProps} formatter={(v, n) => [fmtNum(v), n === "female" ? "Female" : "Male"]} />
+              <Legend wrapperStyle={{ fontSize: 13 }} formatter={(v) => (v === "female" ? "Female" : "Male")} />
               <Bar dataKey="female" stackId="a" fill="#e06fae" maxBarSize={48} />
               <Bar dataKey="male" stackId="a" fill="#2f6bff" radius={[4, 4, 0, 0]} maxBarSize={48} />
             </BarChart>
@@ -319,22 +319,22 @@ export default function MetaAdsReport({ since, until }) {
 
       {/* 4. ตารางแคมเปญ — คลิกขยาย 2 ชั้น */}
       <div style={cardStyle}>
-        <div style={{ fontSize: 17, color: "var(--text-heading)", fontWeight: 700, marginBottom: 2 }}>ผลลัพธ์รายแคมเปญ</div>
+        <div style={{ fontSize: 17, color: "var(--text-heading)", fontWeight: 700, marginBottom: 2 }}>Results by campaign</div>
         <div style={{ fontSize: 13, color: "var(--text-faint)", marginBottom: 14 }}>
-          คลิกชื่อแคมเปญ → ดูกลุ่มเป้าหมาย → ดูคอนเทนต์ (คลิกรูปเพื่อขยาย)
+          Click a campaign → see audiences → see content (click image to expand)
         </div>
         <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
             <thead>
               <tr style={{ color: "var(--text-faint)", fontSize: 13 }}>
-                <th style={th("left")}>แคมเปญ</th>
-                <th style={th("right")}>งบ</th>
-                <th style={th("right")}>ข้อความ</th>
-                <th style={th("right")}>ต้นทุนข้อความ</th>
+                <th style={th("left")}>Campaign</th>
+                <th style={th("right")}>Spend</th>
+                <th style={th("right")}>Messages</th>
+                <th style={th("right")}>Cost/msg</th>
                 <th style={th("right")}>Lead</th>
                 <th style={th("right")}>CPL</th>
                 <th style={th("right")}>Reach</th>
-                <th style={th("center")}>สถานะ</th>
+                <th style={th("center")}>Status</th>
               </tr>
             </thead>
             <tbody>
@@ -349,11 +349,11 @@ export default function MetaAdsReport({ since, until }) {
                         <span style={{ display: "inline-block", width: 16, color: "var(--text-faint)", transform: cOpen ? "rotate(90deg)" : "none", transition: "transform 0.15s" }}>▸</span>
                         {c.name}
                       </td>
-                      <td style={mono("right")}>{fmtNum(c.spend)} บาท</td>
+                      <td style={mono("right")}>{fmtNum(c.spend)} Baht</td>
                       <td style={mono("right")}>{fmtNum(c.results)}</td>
-                      <td style={mono("right")}>{fmtDec(c.costPerResult, 2)} บาท</td>
+                      <td style={mono("right")}>{fmtDec(c.costPerResult, 2)} Baht</td>
                       <td style={mono("right")}>{fmtNum(c.lead)}</td>
-                      <td style={mono("right")}>{fmtDec(c.cpl, 2)} บาท</td>
+                      <td style={mono("right")}>{fmtDec(c.cpl, 2)} Baht</td>
                       <td style={mono("right")}>{fmtNum(c.reach)}</td>
                       <td style={td("center")}><StatusBadge status={c.status} /></td>
                     </tr>
@@ -362,7 +362,7 @@ export default function MetaAdsReport({ since, until }) {
                     {cOpen && (!c.adsets || c.adsets.length === 0) && (
                       <tr style={{ borderTop: "1px solid var(--border-subtle)", background: "var(--bg-page)" }}>
                         <td colSpan={8} style={{ ...td("left"), paddingLeft: 38, color: "var(--text-faint)", fontStyle: "italic" }}>
-                          ไม่มีกลุ่มเป้าหมายที่มีข้อมูลในช่วงนี้
+                          No audiences with data in this range
                         </td>
                       </tr>
                     )}
@@ -376,11 +376,11 @@ export default function MetaAdsReport({ since, until }) {
                               <span style={{ display: "inline-block", width: 16, color: "var(--text-faint)", transform: asOpen ? "rotate(90deg)" : "none", transition: "transform 0.15s" }}>▸</span>
                               👥 {as.name}
                             </td>
-                            <td style={mono("right")}>{fmtNum(as.spend)} บาท</td>
+                            <td style={mono("right")}>{fmtNum(as.spend)} Baht</td>
                             <td style={mono("right")}>{fmtNum(as.results)}</td>
-                            <td style={mono("right")}>{as.costPerResult > 0 ? `${fmtDec(as.costPerResult, 2)} บาท` : "—"}</td>
+                            <td style={mono("right")}>{as.costPerResult > 0 ? `${fmtDec(as.costPerResult, 2)} Baht` : "—"}</td>
                             <td style={mono("right")}>{fmtNum(as.lead)}</td>
-                            <td style={mono("right")}>{fmtDec(as.cpl, 2)} บาท</td>
+                            <td style={mono("right")}>{fmtDec(as.cpl, 2)} Baht</td>
                             <td style={mono("right")}>{fmtNum(as.reach)}</td>
                             <td style={td("center")}><StatusBadge status={as.status} /></td>
                           </tr>
@@ -402,9 +402,9 @@ export default function MetaAdsReport({ since, until }) {
                                   </div>
                                 </div>
                               </td>
-                              <td style={mono("right")}>{fmtNum(ad.spend)} บาท</td>
+                              <td style={mono("right")}>{fmtNum(ad.spend)} Baht</td>
                               <td style={mono("right")}>{fmtNum(ad.results)}</td>
-                              <td style={mono("right")}>{ad.costPerResult > 0 ? `${fmtDec(ad.costPerResult, 2)} บาท` : "—"}</td>
+                              <td style={mono("right")}>{ad.costPerResult > 0 ? `${fmtDec(ad.costPerResult, 2)} Baht` : "—"}</td>
                               <td style={mono("right")}>{fmtNum(ad.lead)}</td>
                               <td style={mono("right")}>—</td>
                               <td style={mono("right")}>{fmtNum(ad.reach)}</td>
@@ -432,7 +432,7 @@ export default function MetaAdsReport({ since, until }) {
           <img src={lightbox.url} alt={lightbox.name}
             style={{ maxWidth: "96vw", maxHeight: "88vh", minWidth: "min(90vw, 520px)", objectFit: "contain", borderRadius: 14, boxShadow: "0 20px 60px rgba(0,0,0,0.5)" }} />
           <div style={{ color: "#fff", fontSize: 16, fontWeight: 600, fontFamily: "'IBM Plex Sans Thai', sans-serif" }}>{lightbox.name}</div>
-          <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 13 }}>คลิกที่ใดก็ได้เพื่อปิด</div>
+          <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 13 }}>Click anywhere to close</div>
         </div>
       )}
     </div>
