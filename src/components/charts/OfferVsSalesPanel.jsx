@@ -32,6 +32,7 @@ const ratioColor = (r) => (r >= 50 ? "#16a34a" : r >= 25 ? "#d99514" : "var(--te
 
 export default function OfferVsSalesPanel({ rows }) {
   const [selectedKey, setSelectedKey] = useState(null); // year*100+mi
+  const [showRatioInfo, setShowRatioInfo] = useState(false); // popup อธิบาย ratio
 
   // รายชื่อเดือนทั้งหมดที่มีข้อมูล (ใหม่→เก่า)
   const monthOptions = useMemo(() => {
@@ -74,7 +75,32 @@ export default function OfferVsSalesPanel({ rows }) {
   }, [rows, activeKey, monthOptions]);
 
   return (
-    <div style={cardStyle}>
+    <div style={{ ...cardStyle, position: "relative" }}>
+      {/* popup อธิบาย ratio */}
+      {showRatioInfo && (
+        <>
+          <div onClick={() => setShowRatioInfo(false)} style={{ position: "fixed", inset: 0, zIndex: 40 }} />
+          <div style={{
+            position: "absolute", top: 14, right: 14, zIndex: 50, width: 300,
+            background: "var(--bg-card)", border: `1px solid ${ACCENT}`, borderRadius: 12,
+            padding: "14px 16px", boxShadow: "0 10px 28px rgba(0,0,0,0.18)",
+          }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+              <span style={{ fontSize: 15, fontWeight: 700, color: "var(--text-heading)" }}>ratio คืออะไร</span>
+              <span onClick={() => setShowRatioInfo(false)} style={{ cursor: "pointer", color: "var(--text-faint)", fontSize: 16, lineHeight: 1 }}>✕</span>
+            </div>
+            <div style={{ fontSize: 13.5, color: "var(--text-body)", lineHeight: 1.7 }}>
+              <b style={{ color: ACCENT }}>อัตราปิดการขาย (Close Rate)</b><br />
+              = ยอดขาย ÷ ยอดเสนอ × 100<br />
+              บอกว่าจากยอดที่เสนอราคาไป ปิดเป็นยอดขายจริงได้กี่ %
+              <div style={{ marginTop: 8, fontSize: 12, color: "var(--text-faint)" }}>
+                สี: ≥50% เขียว · ≥25% เหลือง · ต่ำกว่านั้นสีจาง
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
       {/* หัว + dropdown เลือกเดือน */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 10, marginBottom: 14 }}>
         <div>
@@ -137,7 +163,11 @@ export default function OfferVsSalesPanel({ rows }) {
                         <th style={{ ...thTd, textAlign: "left", width: "34%" }}>SKU</th>
                         <th style={{ ...thTd, textAlign: "right" }}>เสนอ</th>
                         <th style={{ ...thTd, textAlign: "right" }}>ขาย</th>
-                        <th style={{ ...thTd, textAlign: "right", width: "18%" }}>ratio</th>
+                        <th onClick={() => setShowRatioInfo(true)}
+                          title="อัตราปิดการขาย = ยอดขาย ÷ ยอดเสนอ × 100 (คลิกดูรายละเอียด)"
+                          style={{ ...thTd, textAlign: "right", width: "22%", cursor: "pointer", color: ACCENT, textDecoration: "underline dotted", userSelect: "none" }}>
+                          ratio ⓘ
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
