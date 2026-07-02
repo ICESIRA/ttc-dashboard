@@ -93,8 +93,8 @@ export default function DateRangePicker({ start, end, compareStart, compareEnd, 
 
   return (
     <div style={{ position: "relative", marginBottom: 18 }}>
-      {/* pill */}
-      <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+      {/* pill (ชิดขวา) */}
+      <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", justifyContent: "flex-end" }}>
         <span style={{ fontSize: 15, color: "var(--text-muted)", fontWeight: 500 }}>ช่วงเวลา:</span>
         <button onClick={() => (open ? setOpen(false) : openPanel())}
           style={{
@@ -119,7 +119,7 @@ export default function DateRangePicker({ start, end, compareStart, compareEnd, 
         <>
           <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 40 }} />
           <div style={{
-            position: "absolute", top: "calc(100% + 8px)", left: 0, zIndex: 50, display: "flex",
+            position: "absolute", top: "calc(100% + 8px)", right: 0, zIndex: 50, display: "flex",
             background: "var(--bg-card)", border: "1px solid var(--border-subtle)", borderRadius: 14,
             boxShadow: "0 12px 32px rgba(0,0,0,0.18)", overflow: "hidden",
           }}>
